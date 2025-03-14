@@ -1,0 +1,39 @@
+name: test and coverage
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: Run tests and collect coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Clean Go test cache
+        run: go clean -testcache
+
+      - name: Verify and tidy modules
+        run: go mod tidy
+
+      - name: Run tests and collect coverage
+        run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+
+      - name: Print coverage report
+        run: go tool cover -func=coverage.txt
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
