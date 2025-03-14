@@ -1,0 +1,41 @@
+run:
+  concurrency: 4
+  issues-exit-code: 1
+  timeout: 2m
+
+output:
+  print-issued-lines: true
+  print-linter-name: true
+
+linters:
+  enable-all: true
+  disable:
+    - wsl
+  fast: false
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 100
+  max-same-issues: 3
+  new: false
+  exclude-files:
+    - ".*_test.go"
+    - ".*_mock.go"
+    - "pkg/**"
+    - "vendor/**"
+    - "vendor.pb/**"
+
+linters-settings:
+  varnamelen:
+    min-name-length: 4
+  goimports:
+    local-prefixes: github.com/GlebRadaev/password-manager
+  gci:
+    skip-generated: true
+    sections:
+      - Standard
+      - Default
+      - Prefix(github.com/GlebRadaev/password-manager)
+  gosec:
+    severity: medium
+    confidence: high
