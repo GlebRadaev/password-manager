@@ -24,9 +24,6 @@ const (
 	AuthService_ValidateToken_FullMethodName = "/api.auth.AuthService/ValidateToken"
 	AuthService_GenerateOTP_FullMethodName   = "/api.auth.AuthService/GenerateOTP"
 	AuthService_ValidateOTP_FullMethodName   = "/api.auth.AuthService/ValidateOTP"
-	AuthService_Enable2FA_FullMethodName     = "/api.auth.AuthService/Enable2FA"
-	AuthService_Disable2FA_FullMethodName    = "/api.auth.AuthService/Disable2FA"
-	AuthService_ValidateTOTP_FullMethodName  = "/api.auth.AuthService/ValidateTOTP"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -38,9 +35,6 @@ type AuthServiceClient interface {
 	ValidateToken(ctx context.Context, in *ValidateTokenRequest, opts ...grpc.CallOption) (*ValidateTokenResponse, error)
 	GenerateOTP(ctx context.Context, in *GenerateOTPRequest, opts ...grpc.CallOption) (*GenerateOTPResponse, error)
 	ValidateOTP(ctx context.Context, in *ValidateOTPRequest, opts ...grpc.CallOption) (*ValidateOTPResponse, error)
-	Enable2FA(ctx context.Context, in *Enable2FARequest, opts ...grpc.CallOption) (*Enable2FAResponse, error)
-	Disable2FA(ctx context.Context, in *Disable2FARequest, opts ...grpc.CallOption) (*Disable2FAResponse, error)
-	ValidateTOTP(ctx context.Context, in *ValidateTOTPRequest, opts ...grpc.CallOption) (*ValidateTOTPResponse, error)
 }
 
 type authServiceClient struct {
@@ -101,36 +95,6 @@ func (c *authServiceClient) ValidateOTP(ctx context.Context, in *ValidateOTPRequ
 	return out, nil
 }
 
-func (c *authServiceClient) Enable2FA(ctx context.Context, in *Enable2FARequest, opts ...grpc.CallOption) (*Enable2FAResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Enable2FAResponse)
-	err := c.cc.Invoke(ctx, AuthService_Enable2FA_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) Disable2FA(ctx context.Context, in *Disable2FARequest, opts ...grpc.CallOption) (*Disable2FAResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Disable2FAResponse)
-	err := c.cc.Invoke(ctx, AuthService_Disable2FA_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) ValidateTOTP(ctx context.Context, in *ValidateTOTPRequest, opts ...grpc.CallOption) (*ValidateTOTPResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ValidateTOTPResponse)
-	err := c.cc.Invoke(ctx, AuthService_ValidateTOTP_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -140,9 +104,6 @@ type AuthServiceServer interface {
 	ValidateToken(context.Context, *ValidateTokenRequest) (*ValidateTokenResponse, error)
 	GenerateOTP(context.Context, *GenerateOTPRequest) (*GenerateOTPResponse, error)
 	ValidateOTP(context.Context, *ValidateOTPRequest) (*ValidateOTPResponse, error)
-	Enable2FA(context.Context, *Enable2FARequest) (*Enable2FAResponse, error)
-	Disable2FA(context.Context, *Disable2FARequest) (*Disable2FAResponse, error)
-	ValidateTOTP(context.Context, *ValidateTOTPRequest) (*ValidateTOTPResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -167,15 +128,6 @@ func (UnimplementedAuthServiceServer) GenerateOTP(context.Context, *GenerateOTPR
 }
 func (UnimplementedAuthServiceServer) ValidateOTP(context.Context, *ValidateOTPRequest) (*ValidateOTPResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateOTP not implemented")
-}
-func (UnimplementedAuthServiceServer) Enable2FA(context.Context, *Enable2FARequest) (*Enable2FAResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Enable2FA not implemented")
-}
-func (UnimplementedAuthServiceServer) Disable2FA(context.Context, *Disable2FARequest) (*Disable2FAResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Disable2FA not implemented")
-}
-func (UnimplementedAuthServiceServer) ValidateTOTP(context.Context, *ValidateTOTPRequest) (*ValidateTOTPResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ValidateTOTP not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -288,60 +240,6 @@ func _AuthService_ValidateOTP_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_Enable2FA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Enable2FARequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Enable2FA(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Enable2FA_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Enable2FA(ctx, req.(*Enable2FARequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_Disable2FA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Disable2FARequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Disable2FA(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Disable2FA_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Disable2FA(ctx, req.(*Disable2FARequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_ValidateTOTP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ValidateTOTPRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).ValidateTOTP(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_ValidateTOTP_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).ValidateTOTP(ctx, req.(*ValidateTOTPRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -368,18 +266,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateOTP",
 			Handler:    _AuthService_ValidateOTP_Handler,
-		},
-		{
-			MethodName: "Enable2FA",
-			Handler:    _AuthService_Enable2FA_Handler,
-		},
-		{
-			MethodName: "Disable2FA",
-			Handler:    _AuthService_Disable2FA_Handler,
-		},
-		{
-			MethodName: "ValidateTOTP",
-			Handler:    _AuthService_ValidateTOTP_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

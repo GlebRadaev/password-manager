@@ -18,3 +18,18 @@ auth:
     timeout: 5s
     host: localhost
     port: 5555
+  
+data:
+  httpPort: :8081
+  grpcPort: :9091
+  pgConfig:
+    user: postgres
+    password: postgres
+    dbName: data
+    maxOpenConns: 10
+    maxIdleConns: 5
+    minConns: 1
+    maxConnLifetime: 30s
+    timeout: 5s
+    host: localhost
+    port: 5555

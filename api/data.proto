@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package api.data;
+option go_package = "./data";
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+service DataService {
+  rpc CreateData(CreateDataRequest) returns (CreateDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/create"
+      body: "*"
+    };
+  }
+
+  rpc GetData(GetDataRequest) returns (GetDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/get"
+      body: "*"
+    };
+  }
+
+  rpc UpdateData(UpdateDataRequest) returns (UpdateDataResponse) {
+    option (google.api.http) = {
+      put: "/v1/data/update"
+      body: "*"
+    };
+  }
+
+  rpc DeleteData(DeleteDataRequest) returns (DeleteDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/delete"
+      body: "*"
+    };
+  }
+
+  rpc ListData(ListDataRequest) returns (ListDataResponse) {
+    option (google.api.http) = {
+      get: "/v1/data/list"
+    };
+  }
+}
+
+// Типы данных
+enum DataType {
+  LOGIN_PASSWORD = 0;
+  TEXT = 1;
+  BINARY = 2;
+  BANK_CARD = 3;
+}
+
+message CreateDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  DataType type = 2;
+  bytes data = 3 [(validate.rules).bytes.min_len = 1];
+  map<string, string> metadata = 4;
+}
+
+message CreateDataResponse {
+  string data_id = 1;
+}
+
+message GetDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message GetDataResponse {
+  DataType type = 1;
+  bytes data = 2;
+  map<string, string> metadata = 3;
+}
+
+message UpdateDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+  bytes data = 3 [(validate.rules).bytes.min_len = 1];
+  map<string, string> metadata = 4;
+}
+
+message UpdateDataResponse {
+  string message = 1;
+}
+
+message DeleteDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message DeleteDataResponse {
+  string message = 1;
+}
+
+message ListDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message ListDataResponse {
+  repeated GetDataResponse data = 1;
+}
