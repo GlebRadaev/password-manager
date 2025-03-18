@@ -1,0 +1,57 @@
+@sync_service = http://localhost:8082/v1/sync
+
+### Получение изменений
+GET {{sync_service}}/changes
+Content-Type: application/json
+
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440001",
+  "last_sync_time": 1698765433
+}
+
+> {%
+  if (response.status === 200) {
+    client.global.set("changes", response.body.changes);
+  } else {
+    client.log("Ошибка: " + response.body.message);
+  }
+%}
+
+### Отправка изменений
+POST {{sync_service}}/push
+Content-Type: application/json
+
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440002",
+  "changes": [
+    {
+      "data_id": "660e8400-e29b-41d4-a716-446655440001",
+      "type": "update",
+      "data": "...",
+      "metadata": {
+        "website": "example.com",
+        "username": "updated_user"
+      },
+      "timestamp": 1698765432
+    },
+    {
+      "data_id": "770e8400-e29b-41d4-a716-446655440002",
+      "type": "create",
+      "data": "...",
+      "metadata": {
+        "website": "another-example.com",
+        "username": "new_user"
+      },
+      "timestamp": 1698765433
+    }
+  ]
+}
+
+> {%
+  if (response.status === 200) {
+    client.global.set("push_success", response.body.success);
+    client.global.set("push_message", response.body.message);
+  } else {
+    client.log("error: " + response.body.message);
+  }
+%}

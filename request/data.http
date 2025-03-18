@@ -18,7 +18,7 @@ Content-Type: application/json
   if (response.status === 200) {
     client.global.set("data_id", response.body.dataId);
   } else {
-    client.log("Ошибка: " + response.body.message);
+    client.log("error: " + response.body.message);
   }
 %}
 
@@ -37,7 +37,7 @@ Content-Type: application/json
     client.global.set("data_content", response.body.data);
     client.global.set("data_metadata", response.body.metadata);
   } else {
-    client.log("Ошибка: " + response.body.message);
+    client.log("error: " + response.body.message);
   }
 %}
 
@@ -59,7 +59,7 @@ Content-Type: application/json
   if (response.status === 200) {
     client.global.set("update_message", response.body.message);
   } else {
-    client.log("Ошибка: " + response.body.message);
+    client.log("error: " + response.body.message);
   }
 %}
 
@@ -76,7 +76,7 @@ Content-Type: application/json
   if (response.status === 200) {
     client.global.set("delete_message", response.body.message);
   } else {
-    client.log("Ошибка: " + response.body.message);
+    client.log("error: " + response.body.message);
   }
 %}
 
@@ -92,6 +92,6 @@ Content-Type: application/json
   if (response.status === 200) {
     client.global.set("data_list", response.body.data);
   } else {
-    client.log("Ошибка: " + response.body.message);
+    client.log("error: " + response.body.message);
   }
 %}
