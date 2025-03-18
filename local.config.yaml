@@ -1,0 +1,20 @@
+env: dev
+log_level: debug
+
+auth:
+  httpPort: :8080
+  grpcPort: :9090
+  secretKey: "my-secret-key"
+  tokenExpiration: 24h
+  otpExpiration: 5m
+  pgConfig:
+    user: postgres
+    password: postgres
+    dbName: auth
+    maxOpenConns: 10
+    maxIdleConns: 5
+    minConns: 1
+    maxConnLifetime: 30s
+    timeout: 5s
+    host: localhost
+    port: 5555

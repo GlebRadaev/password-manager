@@ -1,17 +1,16 @@
-package logger
+package app
 
 import (
 	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"honnef.co/go/tools/config"
 )
 
 const timeLayout = "15:04:05 02-01-2006"
 
-func NewLogger(cfg *config.Config, appName string) *zerolog.Logger {
-	lvl, err := zerolog.ParseLevel(cfg.LogLvl)
+func NewLogger(envLvl string, appName string) *zerolog.Logger {
+	lvl, err := zerolog.ParseLevel(envLvl)
 	if err != nil {
 		lvl = zerolog.InfoLevel
 	}
