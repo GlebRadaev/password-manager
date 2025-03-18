@@ -1,0 +1,67 @@
+@auth_service = http://localhost:8080/v1/auth
+
+# Регистрация пользователя
+###
+POST {{auth_service}}/register
+Content-Type: application/json
+
+{
+  "username": "user123",
+  "password": "password123",
+  "email": "user@example.com"
+}
+
+> {% client.global.set("user_id", response.body.user_id); %}
+
+###
+
+# Вход пользователя
+###
+POST {{auth_service}}/login
+Content-Type: application/json
+
+{
+  "username": "user123",
+  "password": "password123"
+}
+
+> {% client.global.set("token", response.body.token); %}
+> {% client.global.set("expires_in", response.body.expires_in); %}
+
+###
+
+# Проверка токена
+###
+GET {{auth_service}}/validate-token?token={{token}}
+
+> {% client.global.set("valid", response.body.valid); %}
+> {% client.global.set("user_id", response.body.user_id); %}
+
+###
+
+# Генерация OTP
+###
+POST {{auth_service}}/generate-otp
+Content-Type: application/json
+
+{
+  "user_id": "{{user_id}}"
+}
+
+> {% client.global.set("otp_code", response.body.otp_code); %}
+
+###
+
+# Проверка OTP
+###
+POST {{auth_service}}/validate-otp
+Content-Type: application/json
+
+{
+  "user_id": "{{user_id}}",
+  "otp_code": "{{otp_code}}"
+}
+
+> {% client.global.set("valid", response.body.valid); %}
+
+###

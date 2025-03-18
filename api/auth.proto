@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package api.auth;
+option go_package = "./auth";
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/register"
+      body: "*"
+    };
+  }
+
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/login"
+      body: "*"
+    };
+  }
+
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/validate-token"
+    };
+  }
+
+  rpc GenerateOTP(GenerateOTPRequest) returns (GenerateOTPResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/generate-otp"
+      body: "*"
+    };
+  }
+
+  rpc ValidateOTP(ValidateOTPRequest) returns (ValidateOTPResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/validate-otp"
+      body: "*"
+    };
+  }
+}
+
+message RegisterRequest {
+  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"}];
+  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 50}];
+  string email = 3 [(validate.rules).string.email = true];
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string message = 2;
+}
+
+message LoginRequest {
+  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 20}];
+  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 50}];
+}
+
+message LoginResponse {
+  string token = 1;
+  int64 expires_in = 2;
+}
+
+message ValidateTokenRequest {
+  string token = 1 [(validate.rules).string.min_len = 10];
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+}
+
+message GenerateOTPRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message GenerateOTPResponse {
+  string otp_code = 1;
+}
+
+message ValidateOTPRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string otp_code = 2 [(validate.rules).string.len = 6];
+}
+
+message ValidateOTPResponse {
+  bool valid = 1;
+}
