@@ -112,6 +112,68 @@
         ]
       }
     },
+    "/v1/auth/sessions": {
+      "get": {
+        "operationId": "AuthService_ListSessions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authListSessionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/terminate-session": {
+      "post": {
+        "operationId": "AuthService_TerminateSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authTerminateSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authTerminateSessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/v1/auth/validate-otp": {
       "post": {
         "operationId": "AuthService_ValidateOTP",
@@ -181,6 +243,9 @@
       "properties": {
         "userId": {
           "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
         }
       }
     },
@@ -189,6 +254,18 @@
       "properties": {
         "otpCode": {
           "type": "string"
+        }
+      }
+    },
+    "authListSessionsResponse": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authSession"
+          }
         }
       }
     },
@@ -240,6 +317,44 @@
         }
       }
     },
+    "authSession": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "deviceInfo": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "authTerminateSessionRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      }
+    },
+    "authTerminateSessionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "authValidateOTPRequest": {
       "type": "object",
       "properties": {
@@ -247,6 +362,9 @@
           "type": "string"
         },
         "otpCode": {
+          "type": "string"
+        },
+        "deviceId": {
           "type": "string"
         }
       }

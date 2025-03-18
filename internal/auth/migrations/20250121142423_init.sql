@@ -4,6 +4,7 @@
 CREATE SCHEMA IF NOT EXISTS auth;
 
 DROP TABLE IF EXISTS auth.otp_codes;
+DROP TABLE IF EXISTS auth.sessions;
 DROP TABLE IF EXISTS auth.users;
 
 CREATE TABLE IF NOT EXISTS auth.users
@@ -20,7 +21,17 @@ CREATE TABLE IF NOT EXISTS auth.otp_codes
     user_id    UUID REFERENCES auth.users(user_id) ON DELETE CASCADE,
     otp_code   TEXT NOT NULL,
     expires_at TIMESTAMP NOT NULL,
-    PRIMARY KEY (user_id, otp_code)
+    device_id  TEXT NOT NULL,
+    PRIMARY KEY (user_id, otp_code, device_id)
+);
+
+CREATE TABLE IF NOT EXISTS auth.sessions
+(
+    session_id  UUID PRIMARY KEY,
+    user_id     UUID REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    device_info TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at  TIMESTAMP NOT NULL
 );
 
 -- +goose StatementEnd
@@ -29,6 +40,7 @@ CREATE TABLE IF NOT EXISTS auth.otp_codes
 -- +goose StatementBegin
 
 DROP TABLE IF EXISTS auth.otp_codes;
+DROP TABLE IF EXISTS auth.sessions;
 DROP TABLE IF EXISTS auth.users;
 DROP SCHEMA IF EXISTS auth;
 

@@ -74,10 +74,10 @@ func (r *Repository) CheckExists(ctx context.Context, username, email string) (b
 
 func (r *Repository) CreateOTP(ctx context.Context, otp models.OTP) error {
 	query := `
-		INSERT INTO auth.otp_codes (user_id, otp_code, expires_at)
-		VALUES ($1, $2, $3)`
+		INSERT INTO auth.otp_codes (user_id, otp_code, expires_at, device_id)
+		VALUES ($1, $2, $3, $4)`
 
-	_, err := r.db.Exec(ctx, query, otp.UserID, otp.OTPCode, otp.ExpiresAt)
+	_, err := r.db.Exec(ctx, query, otp.UserID, otp.OTPCode, otp.ExpiresAt, otp.DeviceID)
 	if err != nil {
 		return fmt.Errorf("failed to create OTP: %w", err)
 	}
@@ -85,17 +85,18 @@ func (r *Repository) CreateOTP(ctx context.Context, otp models.OTP) error {
 	return nil
 }
 
-func (r *Repository) GetOTP(ctx context.Context, userID string, otpCode string) (models.OTP, error) {
+func (r *Repository) GetOTP(ctx context.Context, userID, otpCode, deviceID string) (models.OTP, error) {
 	query := `
-		SELECT user_id, otp_code, expires_at
+		SELECT user_id, otp_code, expires_at, device_id
 		FROM auth.otp_codes
-		WHERE user_id = $1 AND otp_code = $2`
+		WHERE user_id = $1 AND otp_code = $2 AND device_id = $3`
 
 	var otp models.OTP
-	err := r.db.QueryRow(ctx, query, userID, otpCode).Scan(
+	err := r.db.QueryRow(ctx, query, userID, otpCode, deviceID).Scan(
 		&otp.UserID,
 		&otp.OTPCode,
 		&otp.ExpiresAt,
+		&otp.DeviceID,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -105,4 +106,54 @@ func (r *Repository) GetOTP(ctx context.Context, userID string, otpCode string) 
 	}
 
 	return otp, nil
+}
+
+func (r *Repository) CreateSession(ctx context.Context, session models.Session) error {
+	query := `
+		INSERT INTO auth.sessions (session_id, user_id, device_info, created_at, expires_at)
+		VALUES ($1, $2, $3, $4, $5)`
+
+	_, err := r.db.Exec(ctx, query, session.SessionID, session.UserID, session.DeviceInfo, session.CreatedAt, session.ExpiresAt)
+	if err != nil {
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) ListSessions(ctx context.Context, userID string) ([]models.Session, error) {
+	query := `
+		SELECT session_id, device_info, created_at, expires_at
+		FROM auth.sessions
+		WHERE user_id = $1`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []models.Session
+	for rows.Next() {
+		var session models.Session
+		if err := rows.Scan(&session.SessionID, &session.DeviceInfo, &session.CreatedAt, &session.ExpiresAt); err != nil {
+			return nil, fmt.Errorf("failed to scan session: %w", err)
+		}
+		sessions = append(sessions, session)
+	}
+
+	return sessions, nil
+}
+
+func (r *Repository) TerminateSession(ctx context.Context, sessionID string) error {
+	query := `
+		DELETE FROM auth.sessions
+		WHERE session_id = $1`
+
+	_, err := r.db.Exec(ctx, query, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to terminate session: %w", err)
+	}
+
+	return nil
 }

@@ -72,6 +72,20 @@ func (mr *MockRepoMockRecorder) CreateOTP(ctx, otp any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOTP", reflect.TypeOf((*MockRepo)(nil).CreateOTP), ctx, otp)
 }
 
+// CreateSession mocks base method.
+func (m *MockRepo) CreateSession(ctx context.Context, session models.Session) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSession", ctx, session)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockRepoMockRecorder) CreateSession(ctx, session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockRepo)(nil).CreateSession), ctx, session)
+}
+
 // CreateUser mocks base method.
 func (m *MockRepo) CreateUser(ctx context.Context, user models.User) error {
 	m.ctrl.T.Helper()
@@ -87,18 +101,18 @@ func (mr *MockRepoMockRecorder) CreateUser(ctx, user any) *gomock.Call {
 }
 
 // GetOTP mocks base method.
-func (m *MockRepo) GetOTP(ctx context.Context, userID, otpCode string) (models.OTP, error) {
+func (m *MockRepo) GetOTP(ctx context.Context, userID, otpCode, deviceID string) (models.OTP, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOTP", ctx, userID, otpCode)
+	ret := m.ctrl.Call(m, "GetOTP", ctx, userID, otpCode, deviceID)
 	ret0, _ := ret[0].(models.OTP)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOTP indicates an expected call of GetOTP.
-func (mr *MockRepoMockRecorder) GetOTP(ctx, userID, otpCode any) *gomock.Call {
+func (mr *MockRepoMockRecorder) GetOTP(ctx, userID, otpCode, deviceID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOTP", reflect.TypeOf((*MockRepo)(nil).GetOTP), ctx, userID, otpCode)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOTP", reflect.TypeOf((*MockRepo)(nil).GetOTP), ctx, userID, otpCode, deviceID)
 }
 
 // GetUserByUsername mocks base method.
@@ -114,6 +128,35 @@ func (m *MockRepo) GetUserByUsername(ctx context.Context, username string) (mode
 func (mr *MockRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockRepo)(nil).GetUserByUsername), ctx, username)
+}
+
+// ListSessions mocks base method.
+func (m *MockRepo) ListSessions(ctx context.Context, userID string) ([]models.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSessions", ctx, userID)
+	ret0, _ := ret[0].([]models.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSessions indicates an expected call of ListSessions.
+func (mr *MockRepoMockRecorder) ListSessions(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSessions", reflect.TypeOf((*MockRepo)(nil).ListSessions), ctx, userID)
+}
+
+// TerminateSession mocks base method.
+func (m *MockRepo) TerminateSession(ctx context.Context, sessionID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TerminateSession", ctx, sessionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TerminateSession indicates an expected call of TerminateSession.
+func (mr *MockRepoMockRecorder) TerminateSession(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateSession", reflect.TypeOf((*MockRepo)(nil).TerminateSession), ctx, sessionID)
 }
 
 // MockTxManager is a mock of TxManager interface.

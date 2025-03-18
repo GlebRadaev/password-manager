@@ -16,4 +16,13 @@ type OTP struct {
 	UserID    string
 	OTPCode   string
 	ExpiresAt time.Time
+	DeviceID  string
+}
+
+type Session struct {
+	SessionID  string
+	UserID     string
+	DeviceInfo string
+	CreatedAt  time.Time
+	ExpiresAt  time.Time
 }
