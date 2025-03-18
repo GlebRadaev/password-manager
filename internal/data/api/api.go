@@ -1,5 +1,6 @@
 package api
 
+//go:generate mockgen -destination=api_mock.go -source=api.go -package=api
 import (
 	"context"
 	"errors"

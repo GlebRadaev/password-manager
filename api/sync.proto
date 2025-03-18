@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package api.sync;
+option go_package = "./sync";
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+service SyncService {
+  rpc GetChanges(GetChangesRequest) returns (GetChangesResponse) {
+    option (google.api.http) = {
+      get: "/v1/sync/changes"
+    };
+  }
+
+  rpc PushChanges(PushChangesRequest) returns (PushChangesResponse) {
+    option (google.api.http) = {
+      post: "/v1/sync/push"
+      body: "*"
+    };
+  }
+}
+
+message GetChangesRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  int64 last_sync_time = 2;
+}
+
+message GetChangesResponse {
+  repeated DataChange changes = 1;
+}
+
+message PushChangesRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  repeated DataChange changes = 2;
+}
+
+message PushChangesResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DataChange {
+  string data_id = 1;
+  string type = 2; // "create", "update", "delete"
+  bytes data = 3;
+  map<string, string> metadata = 4;
+  int64 timestamp = 5;
+}
