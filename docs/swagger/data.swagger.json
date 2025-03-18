@@ -1,12 +1,12 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "auth.proto",
+    "title": "data.proto",
     "version": "version not set"
   },
   "tags": [
     {
-      "name": "AuthService"
+      "name": "DataService"
     }
   ],
   "consumes": [
@@ -16,14 +16,14 @@
     "application/json"
   ],
   "paths": {
-    "/v1/auth/generate-otp": {
+    "/v1/data/create": {
       "post": {
-        "operationId": "AuthService_GenerateOTP",
+        "operationId": "DataService_CreateData",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/authGenerateOTPResponse"
+              "$ref": "#/definitions/dataCreateDataResponse"
             }
           },
           "default": {
@@ -39,23 +39,23 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/authGenerateOTPRequest"
+              "$ref": "#/definitions/dataCreateDataRequest"
             }
           }
         ],
         "tags": [
-          "AuthService"
+          "DataService"
         ]
       }
     },
-    "/v1/auth/login": {
+    "/v1/data/delete": {
       "post": {
-        "operationId": "AuthService_Login",
+        "operationId": "DataService_DeleteData",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/authLoginResponse"
+              "$ref": "#/definitions/dataDeleteDataResponse"
             }
           },
           "default": {
@@ -71,23 +71,23 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/authLoginRequest"
+              "$ref": "#/definitions/dataDeleteDataRequest"
             }
           }
         ],
         "tags": [
-          "AuthService"
+          "DataService"
         ]
       }
     },
-    "/v1/auth/register": {
+    "/v1/data/get": {
       "post": {
-        "operationId": "AuthService_Register",
+        "operationId": "DataService_GetData",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/authRegisterResponse"
+              "$ref": "#/definitions/dataGetDataResponse"
             }
           },
           "default": {
@@ -103,55 +103,23 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/authRegisterRequest"
+              "$ref": "#/definitions/dataGetDataRequest"
             }
           }
         ],
         "tags": [
-          "AuthService"
+          "DataService"
         ]
       }
     },
-    "/v1/auth/validate-otp": {
-      "post": {
-        "operationId": "AuthService_ValidateOTP",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/authValidateOTPResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/authValidateOTPRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AuthService"
-        ]
-      }
-    },
-    "/v1/auth/validate-token": {
+    "/v1/data/list": {
       "get": {
-        "operationId": "AuthService_ValidateToken",
+        "operationId": "DataService_ListData",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/authValidateTokenResponse"
+              "$ref": "#/definitions/dataListDataResponse"
             }
           },
           "default": {
@@ -163,109 +131,176 @@
         },
         "parameters": [
           {
-            "name": "token",
+            "name": "userId",
             "in": "query",
             "required": false,
             "type": "string"
           }
         ],
         "tags": [
-          "AuthService"
+          "DataService"
+        ]
+      }
+    },
+    "/v1/data/update": {
+      "put": {
+        "operationId": "DataService_UpdateData",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/dataUpdateDataResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/dataUpdateDataRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataService"
         ]
       }
     }
   },
   "definitions": {
-    "authGenerateOTPRequest": {
+    "dataCreateDataRequest": {
       "type": "object",
       "properties": {
         "userId": {
           "type": "string"
-        }
-      }
-    },
-    "authGenerateOTPResponse": {
-      "type": "object",
-      "properties": {
-        "otpCode": {
-          "type": "string"
-        }
-      }
-    },
-    "authLoginRequest": {
-      "type": "object",
-      "properties": {
-        "username": {
-          "type": "string"
         },
-        "password": {
-          "type": "string"
-        }
-      }
-    },
-    "authLoginResponse": {
-      "type": "object",
-      "properties": {
-        "token": {
-          "type": "string"
+        "type": {
+          "$ref": "#/definitions/dataDataType"
         },
-        "expiresIn": {
+        "data": {
           "type": "string",
-          "format": "int64"
+          "format": "byte"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     },
-    "authRegisterRequest": {
+    "dataCreateDataResponse": {
       "type": "object",
       "properties": {
-        "username": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        },
-        "email": {
+        "dataId": {
           "type": "string"
         }
       }
     },
-    "authRegisterResponse": {
+    "dataDataType": {
+      "type": "string",
+      "enum": [
+        "LOGIN_PASSWORD",
+        "TEXT",
+        "BINARY",
+        "BANK_CARD"
+      ],
+      "default": "LOGIN_PASSWORD",
+      "title": "Типы данных"
+    },
+    "dataDeleteDataRequest": {
       "type": "object",
       "properties": {
         "userId": {
           "type": "string"
         },
+        "dataId": {
+          "type": "string"
+        }
+      }
+    },
+    "dataDeleteDataResponse": {
+      "type": "object",
+      "properties": {
         "message": {
           "type": "string"
         }
       }
     },
-    "authValidateOTPRequest": {
+    "dataGetDataRequest": {
       "type": "object",
       "properties": {
         "userId": {
           "type": "string"
         },
-        "otpCode": {
+        "dataId": {
           "type": "string"
         }
       }
     },
-    "authValidateOTPResponse": {
+    "dataGetDataResponse": {
       "type": "object",
       "properties": {
-        "valid": {
-          "type": "boolean"
+        "type": {
+          "$ref": "#/definitions/dataDataType"
+        },
+        "data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     },
-    "authValidateTokenResponse": {
+    "dataListDataResponse": {
       "type": "object",
       "properties": {
-        "valid": {
-          "type": "boolean"
-        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/dataGetDataResponse"
+          }
+        }
+      }
+    },
+    "dataUpdateDataRequest": {
+      "type": "object",
+      "properties": {
         "userId": {
+          "type": "string"
+        },
+        "dataId": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dataUpdateDataResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
           "type": "string"
         }
       }
