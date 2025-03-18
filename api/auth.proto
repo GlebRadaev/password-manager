@@ -40,6 +40,19 @@ service AuthService {
       body: "*"
     };
   }
+
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/sessions"
+    };
+  }
+
+  rpc TerminateSession(TerminateSessionRequest) returns (TerminateSessionResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/terminate-session"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -74,6 +87,7 @@ message ValidateTokenResponse {
 
 message GenerateOTPRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
+  string device_id = 2;
 }
 
 message GenerateOTPResponse {
@@ -83,8 +97,33 @@ message GenerateOTPResponse {
 message ValidateOTPRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
   string otp_code = 2 [(validate.rules).string.len = 6];
+  string device_id = 3;
 }
 
 message ValidateOTPResponse {
   bool valid = 1;
+}
+
+message ListSessionsRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message TerminateSessionRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string session_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message TerminateSessionResponse {
+  string message = 1;
+}
+
+message Session {
+  string session_id = 1;
+  string device_info = 2;
+  int64 created_at = 3;
+  int64 expires_at = 4;
 }

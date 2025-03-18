@@ -16,6 +16,7 @@ var (
 	ErrUserExists         = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidOTP         = errors.New("invalid OTP")
+	ErrSessionNotFound    = errors.New("session not found")
 )
 
 type Repo interface {
@@ -23,7 +24,10 @@ type Repo interface {
 	GetUserByUsername(ctx context.Context, username string) (models.User, error)
 	CheckExists(ctx context.Context, username, email string) (bool, error)
 	CreateOTP(ctx context.Context, otp models.OTP) error
-	GetOTP(ctx context.Context, userID string, otpCode string) (models.OTP, error)
+	GetOTP(ctx context.Context, userID, otpCode, deviceID string) (models.OTP, error)
+	CreateSession(ctx context.Context, session models.Session) error
+	ListSessions(ctx context.Context, userID string) ([]models.Session, error)
+	TerminateSession(ctx context.Context, sessionID string) error
 }
 
 type TxManager interface {
@@ -97,6 +101,18 @@ func (s *Service) Login(ctx context.Context, username, password string) (string,
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to generate token: %w", err)
 	}
+	deviceInfo := "CLI"
+	session := models.Session{
+		SessionID:  uuid.NewString(),
+		UserID:     user.ID,
+		DeviceInfo: deviceInfo,
+		CreatedAt:  time.Now(),
+		ExpiresAt:  expiresAt,
+	}
+
+	if err := s.repo.CreateSession(ctx, session); err != nil {
+		return "", 0, fmt.Errorf("failed to create session: %w", err)
+	}
 
 	return token, expiresAt.Unix(), nil
 }
@@ -110,7 +126,7 @@ func (s *Service) ValidateToken(ctx context.Context, token string) (bool, string
 	return true, userID, nil
 }
 
-func (s *Service) GenerateOTP(ctx context.Context, userID string) (string, error) {
+func (s *Service) GenerateOTP(ctx context.Context, userID, deviceID string) (string, error) {
 	otpCode, expiresAt, err := s.authManager.GenerateOTP()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate OTP: %w", err)
@@ -120,6 +136,7 @@ func (s *Service) GenerateOTP(ctx context.Context, userID string) (string, error
 		UserID:    userID,
 		OTPCode:   otpCode,
 		ExpiresAt: expiresAt,
+		DeviceID:  deviceID,
 	}
 
 	if err := s.repo.CreateOTP(ctx, otp); err != nil {
@@ -129,8 +146,8 @@ func (s *Service) GenerateOTP(ctx context.Context, userID string) (string, error
 	return otpCode, nil
 }
 
-func (s *Service) ValidateOTP(ctx context.Context, userID, otpCode string) (bool, error) {
-	otp, err := s.repo.GetOTP(ctx, userID, otpCode)
+func (s *Service) ValidateOTP(ctx context.Context, userID, otpCode, deviceID string) (bool, error) {
+	otp, err := s.repo.GetOTP(ctx, userID, otpCode, deviceID)
 	if err != nil {
 		return false, fmt.Errorf("failed to get OTP: %w", err)
 	}
@@ -141,4 +158,12 @@ func (s *Service) ValidateOTP(ctx context.Context, userID, otpCode string) (bool
 	}
 
 	return valid, nil
+}
+
+func (s *Service) ListSessions(ctx context.Context, userID string) ([]models.Session, error) {
+	return s.repo.ListSessions(ctx, userID)
+}
+
+func (s *Service) TerminateSession(ctx context.Context, sessionID string) error {
+	return s.repo.TerminateSession(ctx, sessionID)
 }

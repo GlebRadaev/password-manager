@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	models "github.com/GlebRadaev/password-manager/internal/auth/models"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,18 +42,33 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 }
 
 // GenerateOTP mocks base method.
-func (m *MockService) GenerateOTP(ctx context.Context, userID string) (string, error) {
+func (m *MockService) GenerateOTP(ctx context.Context, userID, deviceID string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateOTP", ctx, userID)
+	ret := m.ctrl.Call(m, "GenerateOTP", ctx, userID, deviceID)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateOTP indicates an expected call of GenerateOTP.
-func (mr *MockServiceMockRecorder) GenerateOTP(ctx, userID any) *gomock.Call {
+func (mr *MockServiceMockRecorder) GenerateOTP(ctx, userID, deviceID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateOTP", reflect.TypeOf((*MockService)(nil).GenerateOTP), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateOTP", reflect.TypeOf((*MockService)(nil).GenerateOTP), ctx, userID, deviceID)
+}
+
+// ListSessions mocks base method.
+func (m *MockService) ListSessions(ctx context.Context, userID string) ([]models.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSessions", ctx, userID)
+	ret0, _ := ret[0].([]models.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSessions indicates an expected call of ListSessions.
+func (mr *MockServiceMockRecorder) ListSessions(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSessions", reflect.TypeOf((*MockService)(nil).ListSessions), ctx, userID)
 }
 
 // Login mocks base method.
@@ -86,19 +102,33 @@ func (mr *MockServiceMockRecorder) Register(ctx, username, password, email any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockService)(nil).Register), ctx, username, password, email)
 }
 
-// ValidateOTP mocks base method.
-func (m *MockService) ValidateOTP(ctx context.Context, userID, otpCode string) (bool, error) {
+// TerminateSession mocks base method.
+func (m *MockService) TerminateSession(ctx context.Context, sessionID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateOTP", ctx, userID, otpCode)
+	ret := m.ctrl.Call(m, "TerminateSession", ctx, sessionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TerminateSession indicates an expected call of TerminateSession.
+func (mr *MockServiceMockRecorder) TerminateSession(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateSession", reflect.TypeOf((*MockService)(nil).TerminateSession), ctx, sessionID)
+}
+
+// ValidateOTP mocks base method.
+func (m *MockService) ValidateOTP(ctx context.Context, userID, otpCode, deviceID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateOTP", ctx, userID, otpCode, deviceID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ValidateOTP indicates an expected call of ValidateOTP.
-func (mr *MockServiceMockRecorder) ValidateOTP(ctx, userID, otpCode any) *gomock.Call {
+func (mr *MockServiceMockRecorder) ValidateOTP(ctx, userID, otpCode, deviceID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateOTP", reflect.TypeOf((*MockService)(nil).ValidateOTP), ctx, userID, otpCode)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateOTP", reflect.TypeOf((*MockService)(nil).ValidateOTP), ctx, userID, otpCode, deviceID)
 }
 
 // ValidateToken mocks base method.
