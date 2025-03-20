@@ -16,14 +16,14 @@
     "application/json"
   ],
   "paths": {
-    "/v1/data/create": {
+    "/v1/data/add": {
       "post": {
-        "operationId": "DataService_CreateData",
+        "operationId": "DataService_AddData",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/dataCreateDataResponse"
+              "$ref": "#/definitions/dataAddDataResponse"
             }
           },
           "default": {
@@ -39,7 +39,39 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/dataCreateDataRequest"
+              "$ref": "#/definitions/dataAddDataRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataService"
+        ]
+      }
+    },
+    "/v1/data/batch": {
+      "post": {
+        "operationId": "DataService_BatchProcess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/dataBatchProcessResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/dataBatchProcessRequest"
             }
           }
         ],
@@ -81,7 +113,7 @@
       }
     },
     "/v1/data/get": {
-      "post": {
+      "get": {
         "operationId": "DataService_GetData",
         "responses": {
           "200": {
@@ -99,12 +131,16 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/dataGetDataRequest"
-            }
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "dataId",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -143,7 +179,7 @@
       }
     },
     "/v1/data/update": {
-      "put": {
+      "post": {
         "operationId": "DataService_UpdateData",
         "responses": {
           "200": {
@@ -176,7 +212,7 @@
     }
   },
   "definitions": {
-    "dataCreateDataRequest": {
+    "dataAddDataRequest": {
       "type": "object",
       "properties": {
         "userId": {
@@ -190,18 +226,104 @@
           "format": "byte"
         },
         "metadata": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/dataMetadata"
           }
         }
       }
     },
-    "dataCreateDataResponse": {
+    "dataAddDataResponse": {
       "type": "object",
       "properties": {
         "dataId": {
           "type": "string"
+        }
+      }
+    },
+    "dataBatchProcessRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/dataDataOperation"
+          }
+        }
+      }
+    },
+    "dataBatchProcessResponse": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/dataDataOperationResult"
+          }
+        }
+      }
+    },
+    "dataDataEntry": {
+      "type": "object",
+      "properties": {
+        "dataId": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/dataDataType"
+        },
+        "data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/dataMetadata"
+          }
+        }
+      }
+    },
+    "dataDataOperation": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "$ref": "#/definitions/dataAddDataRequest"
+        },
+        "update": {
+          "$ref": "#/definitions/dataUpdateDataRequest"
+        },
+        "delete": {
+          "$ref": "#/definitions/dataDeleteDataRequest"
+        }
+      }
+    },
+    "dataDataOperationResult": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "$ref": "#/definitions/dataAddDataResponse"
+        },
+        "update": {
+          "$ref": "#/definitions/dataUpdateDataResponse"
+        },
+        "delete": {
+          "$ref": "#/definitions/dataDeleteDataResponse"
         }
       }
     },
@@ -211,10 +333,9 @@
         "LOGIN_PASSWORD",
         "TEXT",
         "BINARY",
-        "BANK_CARD"
+        "CARD"
       ],
-      "default": "LOGIN_PASSWORD",
-      "title": "Типы данных"
+      "default": "LOGIN_PASSWORD"
     },
     "dataDeleteDataRequest": {
       "type": "object",
@@ -235,44 +356,34 @@
         }
       }
     },
-    "dataGetDataRequest": {
-      "type": "object",
-      "properties": {
-        "userId": {
-          "type": "string"
-        },
-        "dataId": {
-          "type": "string"
-        }
-      }
-    },
     "dataGetDataResponse": {
       "type": "object",
       "properties": {
-        "type": {
-          "$ref": "#/definitions/dataDataType"
-        },
-        "data": {
-          "type": "string",
-          "format": "byte"
-        },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+        "entry": {
+          "$ref": "#/definitions/dataDataEntry"
         }
       }
     },
     "dataListDataResponse": {
       "type": "object",
       "properties": {
-        "data": {
+        "entries": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/dataGetDataResponse"
+            "$ref": "#/definitions/dataDataEntry"
           }
+        }
+      }
+    },
+    "dataMetadata": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
         }
       }
     },
@@ -290,9 +401,10 @@
           "format": "byte"
         },
         "metadata": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/dataMetadata"
           }
         }
       }

@@ -37,6 +37,8 @@ data:
 sync:
   httpPort: :8082
   grpcPort: :9092
+  dataSvc:
+    endpoint: localhost:9091
   pgConfig:
     user: postgres
     password: postgres

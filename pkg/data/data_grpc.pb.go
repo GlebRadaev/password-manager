@@ -19,22 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataService_CreateData_FullMethodName = "/api.data.DataService/CreateData"
-	DataService_GetData_FullMethodName    = "/api.data.DataService/GetData"
-	DataService_UpdateData_FullMethodName = "/api.data.DataService/UpdateData"
-	DataService_DeleteData_FullMethodName = "/api.data.DataService/DeleteData"
-	DataService_ListData_FullMethodName   = "/api.data.DataService/ListData"
+	DataService_AddData_FullMethodName      = "/api.data.DataService/AddData"
+	DataService_UpdateData_FullMethodName   = "/api.data.DataService/UpdateData"
+	DataService_DeleteData_FullMethodName   = "/api.data.DataService/DeleteData"
+	DataService_ListData_FullMethodName     = "/api.data.DataService/ListData"
+	DataService_GetData_FullMethodName      = "/api.data.DataService/GetData"
+	DataService_BatchProcess_FullMethodName = "/api.data.DataService/BatchProcess"
 )
 
 // DataServiceClient is the client API for DataService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataServiceClient interface {
-	CreateData(ctx context.Context, in *CreateDataRequest, opts ...grpc.CallOption) (*CreateDataResponse, error)
-	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error)
+	AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResponse, error)
 	UpdateData(ctx context.Context, in *UpdateDataRequest, opts ...grpc.CallOption) (*UpdateDataResponse, error)
 	DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*DeleteDataResponse, error)
 	ListData(ctx context.Context, in *ListDataRequest, opts ...grpc.CallOption) (*ListDataResponse, error)
+	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error)
+	BatchProcess(ctx context.Context, in *BatchProcessRequest, opts ...grpc.CallOption) (*BatchProcessResponse, error)
 }
 
 type dataServiceClient struct {
@@ -45,20 +47,10 @@ func NewDataServiceClient(cc grpc.ClientConnInterface) DataServiceClient {
 	return &dataServiceClient{cc}
 }
 
-func (c *dataServiceClient) CreateData(ctx context.Context, in *CreateDataRequest, opts ...grpc.CallOption) (*CreateDataResponse, error) {
+func (c *dataServiceClient) AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateDataResponse)
-	err := c.cc.Invoke(ctx, DataService_CreateData_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dataServiceClient) GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetDataResponse)
-	err := c.cc.Invoke(ctx, DataService_GetData_FullMethodName, in, out, cOpts...)
+	out := new(AddDataResponse)
+	err := c.cc.Invoke(ctx, DataService_AddData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,15 +87,36 @@ func (c *dataServiceClient) ListData(ctx context.Context, in *ListDataRequest, o
 	return out, nil
 }
 
+func (c *dataServiceClient) GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDataResponse)
+	err := c.cc.Invoke(ctx, DataService_GetData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) BatchProcess(ctx context.Context, in *BatchProcessRequest, opts ...grpc.CallOption) (*BatchProcessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchProcessResponse)
+	err := c.cc.Invoke(ctx, DataService_BatchProcess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataServiceServer is the server API for DataService service.
 // All implementations must embed UnimplementedDataServiceServer
 // for forward compatibility.
 type DataServiceServer interface {
-	CreateData(context.Context, *CreateDataRequest) (*CreateDataResponse, error)
-	GetData(context.Context, *GetDataRequest) (*GetDataResponse, error)
+	AddData(context.Context, *AddDataRequest) (*AddDataResponse, error)
 	UpdateData(context.Context, *UpdateDataRequest) (*UpdateDataResponse, error)
 	DeleteData(context.Context, *DeleteDataRequest) (*DeleteDataResponse, error)
 	ListData(context.Context, *ListDataRequest) (*ListDataResponse, error)
+	GetData(context.Context, *GetDataRequest) (*GetDataResponse, error)
+	BatchProcess(context.Context, *BatchProcessRequest) (*BatchProcessResponse, error)
 	mustEmbedUnimplementedDataServiceServer()
 }
 
@@ -114,11 +127,8 @@ type DataServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDataServiceServer struct{}
 
-func (UnimplementedDataServiceServer) CreateData(context.Context, *CreateDataRequest) (*CreateDataResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateData not implemented")
-}
-func (UnimplementedDataServiceServer) GetData(context.Context, *GetDataRequest) (*GetDataResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetData not implemented")
+func (UnimplementedDataServiceServer) AddData(context.Context, *AddDataRequest) (*AddDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddData not implemented")
 }
 func (UnimplementedDataServiceServer) UpdateData(context.Context, *UpdateDataRequest) (*UpdateDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateData not implemented")
@@ -128,6 +138,12 @@ func (UnimplementedDataServiceServer) DeleteData(context.Context, *DeleteDataReq
 }
 func (UnimplementedDataServiceServer) ListData(context.Context, *ListDataRequest) (*ListDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListData not implemented")
+}
+func (UnimplementedDataServiceServer) GetData(context.Context, *GetDataRequest) (*GetDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetData not implemented")
+}
+func (UnimplementedDataServiceServer) BatchProcess(context.Context, *BatchProcessRequest) (*BatchProcessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchProcess not implemented")
 }
 func (UnimplementedDataServiceServer) mustEmbedUnimplementedDataServiceServer() {}
 func (UnimplementedDataServiceServer) testEmbeddedByValue()                     {}
@@ -150,38 +166,20 @@ func RegisterDataServiceServer(s grpc.ServiceRegistrar, srv DataServiceServer) {
 	s.RegisterService(&DataService_ServiceDesc, srv)
 }
 
-func _DataService_CreateData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateDataRequest)
+func _DataService_AddData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataServiceServer).CreateData(ctx, in)
+		return srv.(DataServiceServer).AddData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DataService_CreateData_FullMethodName,
+		FullMethod: DataService_AddData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServiceServer).CreateData(ctx, req.(*CreateDataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DataService_GetData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDataRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DataServiceServer).GetData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DataService_GetData_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServiceServer).GetData(ctx, req.(*GetDataRequest))
+		return srv.(DataServiceServer).AddData(ctx, req.(*AddDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -240,6 +238,42 @@ func _DataService_ListData_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataService_GetData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).GetData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataService_GetData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).GetData(ctx, req.(*GetDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_BatchProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchProcessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).BatchProcess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataService_BatchProcess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).BatchProcess(ctx, req.(*BatchProcessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataService_ServiceDesc is the grpc.ServiceDesc for DataService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -248,12 +282,8 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DataServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateData",
-			Handler:    _DataService_CreateData_Handler,
-		},
-		{
-			MethodName: "GetData",
-			Handler:    _DataService_GetData_Handler,
+			MethodName: "AddData",
+			Handler:    _DataService_AddData_Handler,
 		},
 		{
 			MethodName: "UpdateData",
@@ -266,6 +296,14 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListData",
 			Handler:    _DataService_ListData_Handler,
+		},
+		{
+			MethodName: "GetData",
+			Handler:    _DataService_GetData_Handler,
+		},
+		{
+			MethodName: "BatchProcess",
+			Handler:    _DataService_BatchProcess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

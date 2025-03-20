@@ -19,16 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SyncService_GetChanges_FullMethodName  = "/api.sync.SyncService/GetChanges"
-	SyncService_PushChanges_FullMethodName = "/api.sync.SyncService/PushChanges"
+	SyncService_SyncData_FullMethodName        = "/api.sync.SyncService/SyncData"
+	SyncService_ResolveConflict_FullMethodName = "/api.sync.SyncService/ResolveConflict"
+	SyncService_ListConflicts_FullMethodName   = "/api.sync.SyncService/ListConflicts"
 )
 
 // SyncServiceClient is the client API for SyncService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SyncServiceClient interface {
-	GetChanges(ctx context.Context, in *GetChangesRequest, opts ...grpc.CallOption) (*GetChangesResponse, error)
-	PushChanges(ctx context.Context, in *PushChangesRequest, opts ...grpc.CallOption) (*PushChangesResponse, error)
+	SyncData(ctx context.Context, in *SyncDataRequest, opts ...grpc.CallOption) (*SyncDataResponse, error)
+	ResolveConflict(ctx context.Context, in *ResolveConflictRequest, opts ...grpc.CallOption) (*ResolveConflictResponse, error)
+	ListConflicts(ctx context.Context, in *ListConflictsRequest, opts ...grpc.CallOption) (*ListConflictsResponse, error)
 }
 
 type syncServiceClient struct {
@@ -39,20 +41,30 @@ func NewSyncServiceClient(cc grpc.ClientConnInterface) SyncServiceClient {
 	return &syncServiceClient{cc}
 }
 
-func (c *syncServiceClient) GetChanges(ctx context.Context, in *GetChangesRequest, opts ...grpc.CallOption) (*GetChangesResponse, error) {
+func (c *syncServiceClient) SyncData(ctx context.Context, in *SyncDataRequest, opts ...grpc.CallOption) (*SyncDataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetChangesResponse)
-	err := c.cc.Invoke(ctx, SyncService_GetChanges_FullMethodName, in, out, cOpts...)
+	out := new(SyncDataResponse)
+	err := c.cc.Invoke(ctx, SyncService_SyncData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *syncServiceClient) PushChanges(ctx context.Context, in *PushChangesRequest, opts ...grpc.CallOption) (*PushChangesResponse, error) {
+func (c *syncServiceClient) ResolveConflict(ctx context.Context, in *ResolveConflictRequest, opts ...grpc.CallOption) (*ResolveConflictResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PushChangesResponse)
-	err := c.cc.Invoke(ctx, SyncService_PushChanges_FullMethodName, in, out, cOpts...)
+	out := new(ResolveConflictResponse)
+	err := c.cc.Invoke(ctx, SyncService_ResolveConflict_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) ListConflicts(ctx context.Context, in *ListConflictsRequest, opts ...grpc.CallOption) (*ListConflictsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListConflictsResponse)
+	err := c.cc.Invoke(ctx, SyncService_ListConflicts_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +75,9 @@ func (c *syncServiceClient) PushChanges(ctx context.Context, in *PushChangesRequ
 // All implementations must embed UnimplementedSyncServiceServer
 // for forward compatibility.
 type SyncServiceServer interface {
-	GetChanges(context.Context, *GetChangesRequest) (*GetChangesResponse, error)
-	PushChanges(context.Context, *PushChangesRequest) (*PushChangesResponse, error)
+	SyncData(context.Context, *SyncDataRequest) (*SyncDataResponse, error)
+	ResolveConflict(context.Context, *ResolveConflictRequest) (*ResolveConflictResponse, error)
+	ListConflicts(context.Context, *ListConflictsRequest) (*ListConflictsResponse, error)
 	mustEmbedUnimplementedSyncServiceServer()
 }
 
@@ -75,11 +88,14 @@ type SyncServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSyncServiceServer struct{}
 
-func (UnimplementedSyncServiceServer) GetChanges(context.Context, *GetChangesRequest) (*GetChangesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetChanges not implemented")
+func (UnimplementedSyncServiceServer) SyncData(context.Context, *SyncDataRequest) (*SyncDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncData not implemented")
 }
-func (UnimplementedSyncServiceServer) PushChanges(context.Context, *PushChangesRequest) (*PushChangesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushChanges not implemented")
+func (UnimplementedSyncServiceServer) ResolveConflict(context.Context, *ResolveConflictRequest) (*ResolveConflictResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResolveConflict not implemented")
+}
+func (UnimplementedSyncServiceServer) ListConflicts(context.Context, *ListConflictsRequest) (*ListConflictsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListConflicts not implemented")
 }
 func (UnimplementedSyncServiceServer) mustEmbedUnimplementedSyncServiceServer() {}
 func (UnimplementedSyncServiceServer) testEmbeddedByValue()                     {}
@@ -102,38 +118,56 @@ func RegisterSyncServiceServer(s grpc.ServiceRegistrar, srv SyncServiceServer) {
 	s.RegisterService(&SyncService_ServiceDesc, srv)
 }
 
-func _SyncService_GetChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetChangesRequest)
+func _SyncService_SyncData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SyncDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SyncServiceServer).GetChanges(ctx, in)
+		return srv.(SyncServiceServer).SyncData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SyncService_GetChanges_FullMethodName,
+		FullMethod: SyncService_SyncData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SyncServiceServer).GetChanges(ctx, req.(*GetChangesRequest))
+		return srv.(SyncServiceServer).SyncData(ctx, req.(*SyncDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SyncService_PushChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PushChangesRequest)
+func _SyncService_ResolveConflict_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveConflictRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SyncServiceServer).PushChanges(ctx, in)
+		return srv.(SyncServiceServer).ResolveConflict(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SyncService_PushChanges_FullMethodName,
+		FullMethod: SyncService_ResolveConflict_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SyncServiceServer).PushChanges(ctx, req.(*PushChangesRequest))
+		return srv.(SyncServiceServer).ResolveConflict(ctx, req.(*ResolveConflictRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_ListConflicts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListConflictsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).ListConflicts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_ListConflicts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).ListConflicts(ctx, req.(*ListConflictsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -146,12 +180,16 @@ var SyncService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*SyncServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetChanges",
-			Handler:    _SyncService_GetChanges_Handler,
+			MethodName: "SyncData",
+			Handler:    _SyncService_SyncData_Handler,
 		},
 		{
-			MethodName: "PushChanges",
-			Handler:    _SyncService_PushChanges_Handler,
+			MethodName: "ResolveConflict",
+			Handler:    _SyncService_ResolveConflict_Handler,
+		},
+		{
+			MethodName: "ListConflicts",
+			Handler:    _SyncService_ListConflicts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -2,166 +2,135 @@ package repo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
+	pgx "github.com/jackc/pgx/v5"
 
 	"github.com/GlebRadaev/password-manager/internal/common/pg"
 	"github.com/GlebRadaev/password-manager/internal/data/models"
-	"github.com/jackc/pgx/v5"
 )
 
 var (
 	ErrDataNotFound = errors.New("data not found")
 )
 
-type Repository struct {
+type Repo struct {
 	db pg.Database
 }
 
-func New(db pg.Database) *Repository {
-	return &Repository{db: db}
+func New(db pg.Database) *Repo {
+	return &Repo{db: db}
 }
 
-func (r *Repository) CreateData(ctx context.Context, data models.Data) error {
-	query := `
-		INSERT INTO data.data (id, user_id, type, data, metadata, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
-
-	metadataJSON, err := json.Marshal(data.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
+func (r *Repo) AddList(ctx context.Context, entries []models.DataEntry) ([]string, error) {
+	batch := &pgx.Batch{}
+	for _, entry := range entries {
+		query := `
+			INSERT INTO data.entries (id, user_id, type, data, metadata, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id`
+		batch.Queue(query,
+			entry.ID,
+			entry.UserID,
+			entry.Type,
+			entry.Data,
+			entry.Metadata,
+			time.Now(),
+			time.Now(),
+		)
 	}
 
-	_, err = r.db.Exec(ctx, query,
-		data.ID,
-		data.UserID,
-		data.Type,
-		data.Data,
-		metadataJSON,
-		data.CreatedAt,
-		data.UpdatedAt,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create data: %w", err)
-	}
+	results := r.db.SendBatch(ctx, batch)
+	defer results.Close()
 
-	return nil
-}
-
-func (r *Repository) GetData(ctx context.Context, userID, dataID string) (models.Data, error) {
-	query := `
-		SELECT id, user_id, type, data, metadata, created_at, updated_at
-		FROM data.data
-		WHERE id = $1 AND user_id = $2`
-
-	var data models.Data
-	var metadataJSON []byte
-
-	err := r.db.QueryRow(ctx, query, dataID, userID).Scan(
-		&data.ID,
-		&data.UserID,
-		&data.Type,
-		&data.Data,
-		&metadataJSON,
-		&data.CreatedAt,
-		&data.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Data{}, ErrDataNotFound
+	ids := make([]string, 0, len(entries))
+	for i := 0; i < len(entries); i++ {
+		var id string
+		if err := results.QueryRow().Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to add data list: %w", err)
 		}
-		return models.Data{}, fmt.Errorf("failed to get data: %w", err)
+		ids = append(ids, id)
 	}
 
-	if err := json.Unmarshal(metadataJSON, &data.Metadata); err != nil {
-		return models.Data{}, fmt.Errorf("failed to unmarshal metadata: %w", err)
+	if err := results.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close batch results: %w", err)
 	}
 
-	return data, nil
+	return ids, nil
 }
 
-func (r *Repository) UpdateData(ctx context.Context, data models.Data) error {
+func (r *Repo) UpdateData(ctx context.Context, entry models.DataEntry) error {
 	query := `
-		UPDATE data.data
+		UPDATE data.entries
 		SET type = $1, data = $2, metadata = $3, updated_at = $4
 		WHERE id = $5 AND user_id = $6`
-
-	metadataJSON, err := json.Marshal(data.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
-	}
-
-	_, err = r.db.Exec(ctx, query,
-		data.Type,
-		data.Data,
-		metadataJSON,
-		data.UpdatedAt,
-		data.ID,
-		data.UserID,
+	result, err := r.db.Exec(ctx, query,
+		entry.Type,
+		entry.Data,
+		entry.Metadata,
+		time.Now(),
+		entry.ID,
+		entry.UserID,
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrDataNotFound
-		}
 		return fmt.Errorf("failed to update data: %w", err)
 	}
-
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrDataNotFound
+	}
 	return nil
 }
 
-func (r *Repository) DeleteData(ctx context.Context, userID, dataID string) error {
-	query := `
-		DELETE FROM data.data
-		WHERE id = $1 AND user_id = $2`
+func (r *Repo) DeleteList(ctx context.Context, userID string, dataIDs []string) error {
+	if len(dataIDs) == 0 {
+		return nil
+	}
 
-	_, err := r.db.Exec(ctx, query, dataID, userID)
+	query := `
+		DELETE FROM data.entries
+		WHERE user_id = $1 AND id = ANY($2)`
+
+	result, err := r.db.Exec(ctx, query, userID, dataIDs)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrDataNotFound
-		}
-		return fmt.Errorf("failed to delete data: %w", err)
+		return fmt.Errorf("failed to delete data list: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrDataNotFound
 	}
 
 	return nil
 }
 
-func (r *Repository) ListData(ctx context.Context, userID string) ([]models.Data, error) {
+func (r *Repo) ListData(ctx context.Context, userID string) ([]models.DataEntry, error) {
 	query := `
-		SELECT id, user_id, type, data, metadata, created_at, updated_at
-		FROM data.data
+		SELECT id, type, data, metadata, updated_at
+		FROM data.entries
 		WHERE user_id = $1`
-
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list data: %w", err)
 	}
 	defer rows.Close()
 
-	var dataList []models.Data
+	var entries []models.DataEntry
 	for rows.Next() {
-		var data models.Data
-		var metadataJSON []byte
-
-		err := rows.Scan(
-			&data.ID,
-			&data.UserID,
-			&data.Type,
-			&data.Data,
-			&metadataJSON,
-			&data.CreatedAt,
-			&data.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan data: %w", err)
+		var entry models.DataEntry
+		if err := rows.Scan(
+			&entry.ID,
+			&entry.Type,
+			&entry.Data,
+			&entry.Metadata,
+			&entry.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan data entry: %w", err)
 		}
-
-		if err := json.Unmarshal(metadataJSON, &data.Metadata); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
-		}
-
-		dataList = append(dataList, data)
+		entries = append(entries, entry)
 	}
 
-	return dataList, nil
+	return entries, nil
 }

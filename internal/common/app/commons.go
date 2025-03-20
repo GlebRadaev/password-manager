@@ -24,6 +24,10 @@ type PgConfig struct {
 	Port            int           `mapstructure:"port"`
 }
 
+type GRPCClient struct {
+	Endpoint string `mapstructure:"endpoint" envconfig:"ENDPOINT" validate:"required"`
+}
+
 func (c PgConfig) DSN() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", c.User, c.Password, c.Host, c.Port, c.DbName)
 }

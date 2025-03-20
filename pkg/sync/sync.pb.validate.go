@@ -38,22 +38,22 @@ var (
 // define the regex for a UUID once up-front
 var _sync_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-// Validate checks the field values on GetChangesRequest with the rules defined
+// Validate checks the field values on SyncDataRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
-func (m *GetChangesRequest) Validate() error {
+func (m *SyncDataRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on GetChangesRequest with the rules
+// ValidateAll checks the field values on SyncDataRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// GetChangesRequestMultiError, or nil if none found.
-func (m *GetChangesRequest) ValidateAll() error {
+// SyncDataRequestMultiError, or nil if none found.
+func (m *SyncDataRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *GetChangesRequest) validate(all bool) error {
+func (m *SyncDataRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (m *GetChangesRequest) validate(all bool) error {
 	var errors []error
 
 	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = GetChangesRequestValidationError{
+		err = SyncDataRequestValidationError{
 			field:  "UserId",
 			reason: "value must be a valid UUID",
 			cause:  err,
@@ -72,135 +72,23 @@ func (m *GetChangesRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for LastSyncTime
-
-	if len(errors) > 0 {
-		return GetChangesRequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *GetChangesRequest) _validateUuid(uuid string) error {
-	if matched := _sync_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
-	}
-
-	return nil
-}
-
-// GetChangesRequestMultiError is an error wrapping multiple validation errors
-// returned by GetChangesRequest.ValidateAll() if the designated constraints
-// aren't met.
-type GetChangesRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GetChangesRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GetChangesRequestMultiError) AllErrors() []error { return m }
-
-// GetChangesRequestValidationError is the validation error returned by
-// GetChangesRequest.Validate if the designated constraints aren't met.
-type GetChangesRequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e GetChangesRequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e GetChangesRequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e GetChangesRequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e GetChangesRequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e GetChangesRequestValidationError) ErrorName() string {
-	return "GetChangesRequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e GetChangesRequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sGetChangesRequest.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = GetChangesRequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = GetChangesRequestValidationError{}
-
-// Validate checks the field values on GetChangesResponse with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *GetChangesResponse) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on GetChangesResponse with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// GetChangesResponseMultiError, or nil if none found.
-func (m *GetChangesResponse) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *GetChangesResponse) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	for idx, item := range m.GetChanges() {
+	for idx, item := range m.GetClientData() {
 		_, _ = idx, item
 
 		if all {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, GetChangesResponseValidationError{
-						field:  fmt.Sprintf("Changes[%v]", idx),
+					errors = append(errors, SyncDataRequestValidationError{
+						field:  fmt.Sprintf("ClientData[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, GetChangesResponseValidationError{
-						field:  fmt.Sprintf("Changes[%v]", idx),
+					errors = append(errors, SyncDataRequestValidationError{
+						field:  fmt.Sprintf("ClientData[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
@@ -208,8 +96,8 @@ func (m *GetChangesResponse) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return GetChangesResponseValidationError{
-					field:  fmt.Sprintf("Changes[%v]", idx),
+				return SyncDataRequestValidationError{
+					field:  fmt.Sprintf("ClientData[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -219,19 +107,27 @@ func (m *GetChangesResponse) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return GetChangesResponseMultiError(errors)
+		return SyncDataRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// GetChangesResponseMultiError is an error wrapping multiple validation errors
-// returned by GetChangesResponse.ValidateAll() if the designated constraints
+func (m *SyncDataRequest) _validateUuid(uuid string) error {
+	if matched := _sync_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// SyncDataRequestMultiError is an error wrapping multiple validation errors
+// returned by SyncDataRequest.ValidateAll() if the designated constraints
 // aren't met.
-type GetChangesResponseMultiError []error
+type SyncDataRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m GetChangesResponseMultiError) Error() string {
+func (m SyncDataRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -240,11 +136,11 @@ func (m GetChangesResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m GetChangesResponseMultiError) AllErrors() []error { return m }
+func (m SyncDataRequestMultiError) AllErrors() []error { return m }
 
-// GetChangesResponseValidationError is the validation error returned by
-// GetChangesResponse.Validate if the designated constraints aren't met.
-type GetChangesResponseValidationError struct {
+// SyncDataRequestValidationError is the validation error returned by
+// SyncDataRequest.Validate if the designated constraints aren't met.
+type SyncDataRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -252,24 +148,22 @@ type GetChangesResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e GetChangesResponseValidationError) Field() string { return e.field }
+func (e SyncDataRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e GetChangesResponseValidationError) Reason() string { return e.reason }
+func (e SyncDataRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e GetChangesResponseValidationError) Cause() error { return e.cause }
+func (e SyncDataRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e GetChangesResponseValidationError) Key() bool { return e.key }
+func (e SyncDataRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e GetChangesResponseValidationError) ErrorName() string {
-	return "GetChangesResponseValidationError"
-}
+func (e SyncDataRequestValidationError) ErrorName() string { return "SyncDataRequestValidationError" }
 
 // Error satisfies the builtin error interface
-func (e GetChangesResponseValidationError) Error() string {
+func (e SyncDataRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -281,14 +175,14 @@ func (e GetChangesResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sGetChangesResponse.%s: %s%s",
+		"invalid %sSyncDataRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = GetChangesResponseValidationError{}
+var _ error = SyncDataRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -296,24 +190,158 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = GetChangesResponseValidationError{}
+} = SyncDataRequestValidationError{}
 
-// Validate checks the field values on PushChangesRequest with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *PushChangesRequest) Validate() error {
+// Validate checks the field values on SyncDataResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *SyncDataResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on PushChangesRequest with the rules
+// ValidateAll checks the field values on SyncDataResponse with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// PushChangesRequestMultiError, or nil if none found.
-func (m *PushChangesRequest) ValidateAll() error {
+// SyncDataResponseMultiError, or nil if none found.
+func (m *SyncDataResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *PushChangesRequest) validate(all bool) error {
+func (m *SyncDataResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	for idx, item := range m.GetConflicts() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, SyncDataResponseValidationError{
+						field:  fmt.Sprintf("Conflicts[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, SyncDataResponseValidationError{
+						field:  fmt.Sprintf("Conflicts[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return SyncDataResponseValidationError{
+					field:  fmt.Sprintf("Conflicts[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return SyncDataResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// SyncDataResponseMultiError is an error wrapping multiple validation errors
+// returned by SyncDataResponse.ValidateAll() if the designated constraints
+// aren't met.
+type SyncDataResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m SyncDataResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m SyncDataResponseMultiError) AllErrors() []error { return m }
+
+// SyncDataResponseValidationError is the validation error returned by
+// SyncDataResponse.Validate if the designated constraints aren't met.
+type SyncDataResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e SyncDataResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e SyncDataResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e SyncDataResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e SyncDataResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e SyncDataResponseValidationError) ErrorName() string { return "SyncDataResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e SyncDataResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sSyncDataResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = SyncDataResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = SyncDataResponseValidationError{}
+
+// Validate checks the field values on ResolveConflictRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ResolveConflictRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ResolveConflictRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ResolveConflictRequestMultiError, or nil if none found.
+func (m *ResolveConflictRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ResolveConflictRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -321,7 +349,7 @@ func (m *PushChangesRequest) validate(all bool) error {
 	var errors []error
 
 	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = PushChangesRequestValidationError{
+		err = ResolveConflictRequestValidationError{
 			field:  "UserId",
 			reason: "value must be a valid UUID",
 			cause:  err,
@@ -332,48 +360,28 @@ func (m *PushChangesRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	for idx, item := range m.GetChanges() {
-		_, _ = idx, item
-
-		if all {
-			switch v := interface{}(item).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, PushChangesRequestValidationError{
-						field:  fmt.Sprintf("Changes[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, PushChangesRequestValidationError{
-						field:  fmt.Sprintf("Changes[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return PushChangesRequestValidationError{
-					field:  fmt.Sprintf("Changes[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
+	if err := m._validateUuid(m.GetConflictId()); err != nil {
+		err = ResolveConflictRequestValidationError{
+			field:  "ConflictId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
+	// no validation rules for Strategy
+
 	if len(errors) > 0 {
-		return PushChangesRequestMultiError(errors)
+		return ResolveConflictRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-func (m *PushChangesRequest) _validateUuid(uuid string) error {
+func (m *ResolveConflictRequest) _validateUuid(uuid string) error {
 	if matched := _sync_uuidPattern.MatchString(uuid); !matched {
 		return errors.New("invalid uuid format")
 	}
@@ -381,13 +389,13 @@ func (m *PushChangesRequest) _validateUuid(uuid string) error {
 	return nil
 }
 
-// PushChangesRequestMultiError is an error wrapping multiple validation errors
-// returned by PushChangesRequest.ValidateAll() if the designated constraints
-// aren't met.
-type PushChangesRequestMultiError []error
+// ResolveConflictRequestMultiError is an error wrapping multiple validation
+// errors returned by ResolveConflictRequest.ValidateAll() if the designated
+// constraints aren't met.
+type ResolveConflictRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m PushChangesRequestMultiError) Error() string {
+func (m ResolveConflictRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -396,11 +404,11 @@ func (m PushChangesRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m PushChangesRequestMultiError) AllErrors() []error { return m }
+func (m ResolveConflictRequestMultiError) AllErrors() []error { return m }
 
-// PushChangesRequestValidationError is the validation error returned by
-// PushChangesRequest.Validate if the designated constraints aren't met.
-type PushChangesRequestValidationError struct {
+// ResolveConflictRequestValidationError is the validation error returned by
+// ResolveConflictRequest.Validate if the designated constraints aren't met.
+type ResolveConflictRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -408,24 +416,24 @@ type PushChangesRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e PushChangesRequestValidationError) Field() string { return e.field }
+func (e ResolveConflictRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e PushChangesRequestValidationError) Reason() string { return e.reason }
+func (e ResolveConflictRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e PushChangesRequestValidationError) Cause() error { return e.cause }
+func (e ResolveConflictRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e PushChangesRequestValidationError) Key() bool { return e.key }
+func (e ResolveConflictRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e PushChangesRequestValidationError) ErrorName() string {
-	return "PushChangesRequestValidationError"
+func (e ResolveConflictRequestValidationError) ErrorName() string {
+	return "ResolveConflictRequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e PushChangesRequestValidationError) Error() string {
+func (e ResolveConflictRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -437,14 +445,14 @@ func (e PushChangesRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sPushChangesRequest.%s: %s%s",
+		"invalid %sResolveConflictRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = PushChangesRequestValidationError{}
+var _ error = ResolveConflictRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -452,48 +460,46 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = PushChangesRequestValidationError{}
+} = ResolveConflictRequestValidationError{}
 
-// Validate checks the field values on PushChangesResponse with the rules
+// Validate checks the field values on ResolveConflictResponse with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *PushChangesResponse) Validate() error {
+func (m *ResolveConflictResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on PushChangesResponse with the rules
-// defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on ResolveConflictResponse with the
+// rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// PushChangesResponseMultiError, or nil if none found.
-func (m *PushChangesResponse) ValidateAll() error {
+// ResolveConflictResponseMultiError, or nil if none found.
+func (m *ResolveConflictResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *PushChangesResponse) validate(all bool) error {
+func (m *ResolveConflictResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
-
-	// no validation rules for Success
 
 	// no validation rules for Message
 
 	if len(errors) > 0 {
-		return PushChangesResponseMultiError(errors)
+		return ResolveConflictResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// PushChangesResponseMultiError is an error wrapping multiple validation
-// errors returned by PushChangesResponse.ValidateAll() if the designated
+// ResolveConflictResponseMultiError is an error wrapping multiple validation
+// errors returned by ResolveConflictResponse.ValidateAll() if the designated
 // constraints aren't met.
-type PushChangesResponseMultiError []error
+type ResolveConflictResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m PushChangesResponseMultiError) Error() string {
+func (m ResolveConflictResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -502,11 +508,11 @@ func (m PushChangesResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m PushChangesResponseMultiError) AllErrors() []error { return m }
+func (m ResolveConflictResponseMultiError) AllErrors() []error { return m }
 
-// PushChangesResponseValidationError is the validation error returned by
-// PushChangesResponse.Validate if the designated constraints aren't met.
-type PushChangesResponseValidationError struct {
+// ResolveConflictResponseValidationError is the validation error returned by
+// ResolveConflictResponse.Validate if the designated constraints aren't met.
+type ResolveConflictResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -514,24 +520,24 @@ type PushChangesResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e PushChangesResponseValidationError) Field() string { return e.field }
+func (e ResolveConflictResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e PushChangesResponseValidationError) Reason() string { return e.reason }
+func (e ResolveConflictResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e PushChangesResponseValidationError) Cause() error { return e.cause }
+func (e ResolveConflictResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e PushChangesResponseValidationError) Key() bool { return e.key }
+func (e ResolveConflictResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e PushChangesResponseValidationError) ErrorName() string {
-	return "PushChangesResponseValidationError"
+func (e ResolveConflictResponseValidationError) ErrorName() string {
+	return "ResolveConflictResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e PushChangesResponseValidationError) Error() string {
+func (e ResolveConflictResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -543,14 +549,14 @@ func (e PushChangesResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sPushChangesResponse.%s: %s%s",
+		"invalid %sResolveConflictResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = PushChangesResponseValidationError{}
+var _ error = ResolveConflictResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -558,24 +564,395 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = PushChangesResponseValidationError{}
+} = ResolveConflictResponseValidationError{}
 
-// Validate checks the field values on DataChange with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *DataChange) Validate() error {
+// Validate checks the field values on ListConflictsRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListConflictsRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on DataChange with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in DataChangeMultiError, or
-// nil if none found.
-func (m *DataChange) ValidateAll() error {
+// ValidateAll checks the field values on ListConflictsRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListConflictsRequestMultiError, or nil if none found.
+func (m *ListConflictsRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *DataChange) validate(all bool) error {
+func (m *ListConflictsRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetUserId()); err != nil {
+		err = ListConflictsRequestValidationError{
+			field:  "UserId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ListConflictsRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ListConflictsRequest) _validateUuid(uuid string) error {
+	if matched := _sync_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ListConflictsRequestMultiError is an error wrapping multiple validation
+// errors returned by ListConflictsRequest.ValidateAll() if the designated
+// constraints aren't met.
+type ListConflictsRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListConflictsRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListConflictsRequestMultiError) AllErrors() []error { return m }
+
+// ListConflictsRequestValidationError is the validation error returned by
+// ListConflictsRequest.Validate if the designated constraints aren't met.
+type ListConflictsRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListConflictsRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListConflictsRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListConflictsRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListConflictsRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListConflictsRequestValidationError) ErrorName() string {
+	return "ListConflictsRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListConflictsRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListConflictsRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListConflictsRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListConflictsRequestValidationError{}
+
+// Validate checks the field values on ListConflictsResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListConflictsResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListConflictsResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListConflictsResponseMultiError, or nil if none found.
+func (m *ListConflictsResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListConflictsResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	for idx, item := range m.GetConflicts() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ListConflictsResponseValidationError{
+						field:  fmt.Sprintf("Conflicts[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ListConflictsResponseValidationError{
+						field:  fmt.Sprintf("Conflicts[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListConflictsResponseValidationError{
+					field:  fmt.Sprintf("Conflicts[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ListConflictsResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListConflictsResponseMultiError is an error wrapping multiple validation
+// errors returned by ListConflictsResponse.ValidateAll() if the designated
+// constraints aren't met.
+type ListConflictsResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListConflictsResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListConflictsResponseMultiError) AllErrors() []error { return m }
+
+// ListConflictsResponseValidationError is the validation error returned by
+// ListConflictsResponse.Validate if the designated constraints aren't met.
+type ListConflictsResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListConflictsResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListConflictsResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListConflictsResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListConflictsResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListConflictsResponseValidationError) ErrorName() string {
+	return "ListConflictsResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListConflictsResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListConflictsResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListConflictsResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListConflictsResponseValidationError{}
+
+// Validate checks the field values on Conflict with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Conflict) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Conflict with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ConflictMultiError, or nil
+// if none found.
+func (m *Conflict) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Conflict) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for ConflictId
+
+	// no validation rules for DataId
+
+	// no validation rules for ClientData
+
+	// no validation rules for ServerData
+
+	// no validation rules for Resolved
+
+	// no validation rules for CreatedAt
+
+	// no validation rules for UpdatedAt
+
+	if len(errors) > 0 {
+		return ConflictMultiError(errors)
+	}
+
+	return nil
+}
+
+// ConflictMultiError is an error wrapping multiple validation errors returned
+// by Conflict.ValidateAll() if the designated constraints aren't met.
+type ConflictMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ConflictMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ConflictMultiError) AllErrors() []error { return m }
+
+// ConflictValidationError is the validation error returned by
+// Conflict.Validate if the designated constraints aren't met.
+type ConflictValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ConflictValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ConflictValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ConflictValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ConflictValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ConflictValidationError) ErrorName() string { return "ConflictValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ConflictValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sConflict.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ConflictValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ConflictValidationError{}
+
+// Validate checks the field values on ClientData with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ClientData) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ClientData with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ClientDataMultiError, or
+// nil if none found.
+func (m *ClientData) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ClientData) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -588,23 +965,57 @@ func (m *DataChange) validate(all bool) error {
 
 	// no validation rules for Data
 
-	// no validation rules for Metadata
+	// no validation rules for Operation
 
-	// no validation rules for Timestamp
+	// no validation rules for UpdatedAt
+
+	for idx, item := range m.GetMetadata() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ClientDataValidationError{
+						field:  fmt.Sprintf("Metadata[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ClientDataValidationError{
+						field:  fmt.Sprintf("Metadata[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ClientDataValidationError{
+					field:  fmt.Sprintf("Metadata[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
 
 	if len(errors) > 0 {
-		return DataChangeMultiError(errors)
+		return ClientDataMultiError(errors)
 	}
 
 	return nil
 }
 
-// DataChangeMultiError is an error wrapping multiple validation errors
-// returned by DataChange.ValidateAll() if the designated constraints aren't met.
-type DataChangeMultiError []error
+// ClientDataMultiError is an error wrapping multiple validation errors
+// returned by ClientData.ValidateAll() if the designated constraints aren't met.
+type ClientDataMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m DataChangeMultiError) Error() string {
+func (m ClientDataMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -613,11 +1024,11 @@ func (m DataChangeMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m DataChangeMultiError) AllErrors() []error { return m }
+func (m ClientDataMultiError) AllErrors() []error { return m }
 
-// DataChangeValidationError is the validation error returned by
-// DataChange.Validate if the designated constraints aren't met.
-type DataChangeValidationError struct {
+// ClientDataValidationError is the validation error returned by
+// ClientData.Validate if the designated constraints aren't met.
+type ClientDataValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -625,22 +1036,22 @@ type DataChangeValidationError struct {
 }
 
 // Field function returns field value.
-func (e DataChangeValidationError) Field() string { return e.field }
+func (e ClientDataValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e DataChangeValidationError) Reason() string { return e.reason }
+func (e ClientDataValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e DataChangeValidationError) Cause() error { return e.cause }
+func (e ClientDataValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e DataChangeValidationError) Key() bool { return e.key }
+func (e ClientDataValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e DataChangeValidationError) ErrorName() string { return "DataChangeValidationError" }
+func (e ClientDataValidationError) ErrorName() string { return "ClientDataValidationError" }
 
 // Error satisfies the builtin error interface
-func (e DataChangeValidationError) Error() string {
+func (e ClientDataValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -652,14 +1063,14 @@ func (e DataChangeValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sDataChange.%s: %s%s",
+		"invalid %sClientData.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = DataChangeValidationError{}
+var _ error = ClientDataValidationError{}
 
 var _ interface {
 	Field() string
@@ -667,4 +1078,107 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = DataChangeValidationError{}
+} = ClientDataValidationError{}
+
+// Validate checks the field values on Metadata with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Metadata) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Metadata with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in MetadataMultiError, or nil
+// if none found.
+func (m *Metadata) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Metadata) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Key
+
+	// no validation rules for Value
+
+	if len(errors) > 0 {
+		return MetadataMultiError(errors)
+	}
+
+	return nil
+}
+
+// MetadataMultiError is an error wrapping multiple validation errors returned
+// by Metadata.ValidateAll() if the designated constraints aren't met.
+type MetadataMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m MetadataMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m MetadataMultiError) AllErrors() []error { return m }
+
+// MetadataValidationError is the validation error returned by
+// Metadata.Validate if the designated constraints aren't met.
+type MetadataValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e MetadataValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e MetadataValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e MetadataValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e MetadataValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e MetadataValidationError) ErrorName() string { return "MetadataValidationError" }
+
+// Error satisfies the builtin error interface
+func (e MetadataValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sMetadata.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = MetadataValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = MetadataValidationError{}
