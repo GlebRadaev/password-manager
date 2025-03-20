@@ -42,54 +42,40 @@ func (m *MockRepo) EXPECT() *MockRepoMockRecorder {
 	return m.recorder
 }
 
-// CreateData mocks base method.
-func (m *MockRepo) CreateData(ctx context.Context, data models.Data) error {
+// AddList mocks base method.
+func (m *MockRepo) AddList(ctx context.Context, entries []models.DataEntry) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateData", ctx, data)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateData indicates an expected call of CreateData.
-func (mr *MockRepoMockRecorder) CreateData(ctx, data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateData", reflect.TypeOf((*MockRepo)(nil).CreateData), ctx, data)
-}
-
-// DeleteData mocks base method.
-func (m *MockRepo) DeleteData(ctx context.Context, userID, dataID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteData", ctx, userID, dataID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteData indicates an expected call of DeleteData.
-func (mr *MockRepoMockRecorder) DeleteData(ctx, userID, dataID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteData", reflect.TypeOf((*MockRepo)(nil).DeleteData), ctx, userID, dataID)
-}
-
-// GetData mocks base method.
-func (m *MockRepo) GetData(ctx context.Context, userID, dataID string) (models.Data, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetData", ctx, userID, dataID)
-	ret0, _ := ret[0].(models.Data)
+	ret := m.ctrl.Call(m, "AddList", ctx, entries)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetData indicates an expected call of GetData.
-func (mr *MockRepoMockRecorder) GetData(ctx, userID, dataID any) *gomock.Call {
+// AddList indicates an expected call of AddList.
+func (mr *MockRepoMockRecorder) AddList(ctx, entries any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetData", reflect.TypeOf((*MockRepo)(nil).GetData), ctx, userID, dataID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddList", reflect.TypeOf((*MockRepo)(nil).AddList), ctx, entries)
+}
+
+// DeleteList mocks base method.
+func (m *MockRepo) DeleteList(ctx context.Context, userID string, dataIDs []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteList", ctx, userID, dataIDs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteList indicates an expected call of DeleteList.
+func (mr *MockRepoMockRecorder) DeleteList(ctx, userID, dataIDs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteList", reflect.TypeOf((*MockRepo)(nil).DeleteList), ctx, userID, dataIDs)
 }
 
 // ListData mocks base method.
-func (m *MockRepo) ListData(ctx context.Context, userID string) ([]models.Data, error) {
+func (m *MockRepo) ListData(ctx context.Context, userID string) ([]models.DataEntry, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListData", ctx, userID)
-	ret0, _ := ret[0].([]models.Data)
+	ret0, _ := ret[0].([]models.DataEntry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -101,17 +87,17 @@ func (mr *MockRepoMockRecorder) ListData(ctx, userID any) *gomock.Call {
 }
 
 // UpdateData mocks base method.
-func (m *MockRepo) UpdateData(ctx context.Context, data models.Data) error {
+func (m *MockRepo) UpdateData(ctx context.Context, entry models.DataEntry) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateData", ctx, data)
+	ret := m.ctrl.Call(m, "UpdateData", ctx, entry)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateData indicates an expected call of UpdateData.
-func (mr *MockRepoMockRecorder) UpdateData(ctx, data any) *gomock.Call {
+func (mr *MockRepoMockRecorder) UpdateData(ctx, entry any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateData", reflect.TypeOf((*MockRepo)(nil).UpdateData), ctx, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateData", reflect.TypeOf((*MockRepo)(nil).UpdateData), ctx, entry)
 }
 
 // MockTxManager is a mock of TxManager interface.

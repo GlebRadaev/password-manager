@@ -41,31 +41,46 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// GetChanges mocks base method.
-func (m *MockService) GetChanges(ctx context.Context, userID string, lastSyncTime int64) ([]models.DataChange, error) {
+// ListConflicts mocks base method.
+func (m *MockService) ListConflicts(ctx context.Context, userID string) ([]models.Conflict, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetChanges", ctx, userID, lastSyncTime)
-	ret0, _ := ret[0].([]models.DataChange)
+	ret := m.ctrl.Call(m, "ListConflicts", ctx, userID)
+	ret0, _ := ret[0].([]models.Conflict)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetChanges indicates an expected call of GetChanges.
-func (mr *MockServiceMockRecorder) GetChanges(ctx, userID, lastSyncTime any) *gomock.Call {
+// ListConflicts indicates an expected call of ListConflicts.
+func (mr *MockServiceMockRecorder) ListConflicts(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChanges", reflect.TypeOf((*MockService)(nil).GetChanges), ctx, userID, lastSyncTime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConflicts", reflect.TypeOf((*MockService)(nil).ListConflicts), ctx, userID)
 }
 
-// PushChanges mocks base method.
-func (m *MockService) PushChanges(ctx context.Context, userID string, changes []models.DataChange) error {
+// ResolveConflict mocks base method.
+func (m *MockService) ResolveConflict(ctx context.Context, conflictID string, strategy models.ResolutionStrategy) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PushChanges", ctx, userID, changes)
+	ret := m.ctrl.Call(m, "ResolveConflict", ctx, conflictID, strategy)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// PushChanges indicates an expected call of PushChanges.
-func (mr *MockServiceMockRecorder) PushChanges(ctx, userID, changes any) *gomock.Call {
+// ResolveConflict indicates an expected call of ResolveConflict.
+func (mr *MockServiceMockRecorder) ResolveConflict(ctx, conflictID, strategy any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PushChanges", reflect.TypeOf((*MockService)(nil).PushChanges), ctx, userID, changes)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveConflict", reflect.TypeOf((*MockService)(nil).ResolveConflict), ctx, conflictID, strategy)
+}
+
+// SyncData mocks base method.
+func (m *MockService) SyncData(ctx context.Context, userID string, clientData []models.ClientData) ([]models.Conflict, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SyncData", ctx, userID, clientData)
+	ret0, _ := ret[0].([]models.Conflict)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SyncData indicates an expected call of SyncData.
+func (mr *MockServiceMockRecorder) SyncData(ctx, userID, clientData any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncData", reflect.TypeOf((*MockService)(nil).SyncData), ctx, userID, clientData)
 }

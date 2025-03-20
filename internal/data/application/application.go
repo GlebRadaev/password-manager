@@ -35,7 +35,7 @@ type Application struct {
 	cfg  *config.Config
 	api  *api.Api
 	srv  *service.Service
-	repo *repo.Repository
+	repo *repo.Repo
 
 	errCh chan error
 	wg    sync.WaitGroup
@@ -53,7 +53,7 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("can't init config: %w", err)
 	}
 	a.cfg = cfg
-	app.NewLogger(cfg.Env, AppName)
+	app.NewLogger(cfg.LogLevel, AppName)
 
 	pool, err := getPgxpool(ctx, cfg.PgConfig)
 	if err != nil {

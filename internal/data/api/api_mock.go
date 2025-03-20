@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	models "github.com/GlebRadaev/password-manager/internal/data/models"
+	data "github.com/GlebRadaev/password-manager/pkg/data"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,19 +42,34 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateData mocks base method.
-func (m *MockService) CreateData(ctx context.Context, userID string, dataType models.DataType, data []byte, metadata map[string]string) (string, error) {
+// AddData mocks base method.
+func (m *MockService) AddData(ctx context.Context, entry models.DataEntry) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateData", ctx, userID, dataType, data, metadata)
+	ret := m.ctrl.Call(m, "AddData", ctx, entry)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CreateData indicates an expected call of CreateData.
-func (mr *MockServiceMockRecorder) CreateData(ctx, userID, dataType, data, metadata any) *gomock.Call {
+// AddData indicates an expected call of AddData.
+func (mr *MockServiceMockRecorder) AddData(ctx, entry any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateData", reflect.TypeOf((*MockService)(nil).CreateData), ctx, userID, dataType, data, metadata)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddData", reflect.TypeOf((*MockService)(nil).AddData), ctx, entry)
+}
+
+// BatchProcess mocks base method.
+func (m *MockService) BatchProcess(ctx context.Context, userID string, operations []*data.DataOperation) ([]*data.DataOperationResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchProcess", ctx, userID, operations)
+	ret0, _ := ret[0].([]*data.DataOperationResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchProcess indicates an expected call of BatchProcess.
+func (mr *MockServiceMockRecorder) BatchProcess(ctx, userID, operations any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchProcess", reflect.TypeOf((*MockService)(nil).BatchProcess), ctx, userID, operations)
 }
 
 // DeleteData mocks base method.
@@ -70,26 +86,11 @@ func (mr *MockServiceMockRecorder) DeleteData(ctx, userID, dataID any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteData", reflect.TypeOf((*MockService)(nil).DeleteData), ctx, userID, dataID)
 }
 
-// GetData mocks base method.
-func (m *MockService) GetData(ctx context.Context, userID, dataID string) (models.Data, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetData", ctx, userID, dataID)
-	ret0, _ := ret[0].(models.Data)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetData indicates an expected call of GetData.
-func (mr *MockServiceMockRecorder) GetData(ctx, userID, dataID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetData", reflect.TypeOf((*MockService)(nil).GetData), ctx, userID, dataID)
-}
-
 // ListData mocks base method.
-func (m *MockService) ListData(ctx context.Context, userID string) ([]models.Data, error) {
+func (m *MockService) ListData(ctx context.Context, userID string) ([]models.DataEntry, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListData", ctx, userID)
-	ret0, _ := ret[0].([]models.Data)
+	ret0, _ := ret[0].([]models.DataEntry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -101,15 +102,15 @@ func (mr *MockServiceMockRecorder) ListData(ctx, userID any) *gomock.Call {
 }
 
 // UpdateData mocks base method.
-func (m *MockService) UpdateData(ctx context.Context, userID, dataID string, data []byte, metadata map[string]string) error {
+func (m *MockService) UpdateData(ctx context.Context, entry models.DataEntry) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateData", ctx, userID, dataID, data, metadata)
+	ret := m.ctrl.Call(m, "UpdateData", ctx, entry)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateData indicates an expected call of UpdateData.
-func (mr *MockServiceMockRecorder) UpdateData(ctx, userID, dataID, data, metadata any) *gomock.Call {
+func (mr *MockServiceMockRecorder) UpdateData(ctx, entry any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateData", reflect.TypeOf((*MockService)(nil).UpdateData), ctx, userID, dataID, data, metadata)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateData", reflect.TypeOf((*MockService)(nil).UpdateData), ctx, entry)
 }

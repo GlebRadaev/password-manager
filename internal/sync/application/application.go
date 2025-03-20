@@ -11,6 +11,7 @@ import (
 
 	"github.com/GlebRadaev/password-manager/internal/common/app"
 	"github.com/GlebRadaev/password-manager/internal/sync/api"
+	client "github.com/GlebRadaev/password-manager/internal/sync/clients/data"
 	"github.com/GlebRadaev/password-manager/internal/sync/config"
 	"github.com/GlebRadaev/password-manager/internal/sync/migrations"
 	"github.com/GlebRadaev/password-manager/internal/sync/repo"
@@ -51,7 +52,7 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("can't init config: %w", err)
 	}
 	a.cfg = cfg
-	app.NewLogger(cfg.Env, AppName)
+	app.NewLogger(cfg.LogLevel, AppName)
 
 	pool, err := getPgxpool(ctx, cfg.PgConfig)
 	if err != nil {
@@ -62,8 +63,13 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("can't executing migrations: %v", err)
 	}
 
+	dataCli, err := client.NewClient(cfg.DataSvc)
+	if err != nil {
+		return fmt.Errorf("can't init data service: %v", err)
+	}
+
 	a.repo = repo.New(pool)
-	a.srv = service.New(a.repo)
+	a.srv = service.New(a.repo, dataCli)
 	a.api = api.New(a.srv)
 
 	if err = a.startGrpcServer(ctx); err != nil {

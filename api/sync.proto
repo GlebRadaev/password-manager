@@ -7,43 +7,93 @@ import "google/api/annotations.proto";
 import "validate/validate.proto";
 
 service SyncService {
-  rpc GetChanges(GetChangesRequest) returns (GetChangesResponse) {
+  rpc SyncData(SyncDataRequest) returns (SyncDataResponse) {
     option (google.api.http) = {
-      get: "/v1/sync/changes"
-    };
-  }
-
-  rpc PushChanges(PushChangesRequest) returns (PushChangesResponse) {
-    option (google.api.http) = {
-      post: "/v1/sync/push"
+      post: "/v1/sync/data"
       body: "*"
     };
   }
+
+  rpc ResolveConflict(ResolveConflictRequest) returns (ResolveConflictResponse) {
+    option (google.api.http) = {
+      post: "/v1/sync/resolve-conflict"
+      body: "*"
+    };
+  }
+
+  rpc ListConflicts(ListConflictsRequest) returns (ListConflictsResponse) {
+    option (google.api.http) = {
+      get: "/v1/sync/conflicts"
+    };
+  }
 }
 
-message GetChangesRequest {
+message SyncDataRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
-  int64 last_sync_time = 2;
+  repeated ClientData client_data = 2;
 }
 
-message GetChangesResponse {
-  repeated DataChange changes = 1;
+message SyncDataResponse {
+  repeated Conflict conflicts = 1;
 }
 
-message PushChangesRequest {
+message ResolveConflictRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
-  repeated DataChange changes = 2;
+  string conflict_id = 2 [(validate.rules).string.uuid = true];
+  ResolutionStrategy strategy = 3;
 }
 
-message PushChangesResponse {
-  bool success = 1;
-  string message = 2;
+message ResolveConflictResponse {
+  string message = 1;
 }
 
-message DataChange {
+message ListConflictsRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message ListConflictsResponse {
+  repeated Conflict conflicts = 1;
+}
+
+message Conflict {
+  string conflict_id = 1;
+  string data_id = 2;
+  bytes client_data = 3;
+  bytes server_data = 4;
+  bool resolved = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message ClientData {
   string data_id = 1;
-  string type = 2; // "create", "update", "delete"
+  DataType type = 2;
   bytes data = 3;
-  map<string, string> metadata = 4;
-  int64 timestamp = 5;
+  Operation operation = 4;
+  int64 updated_at = 5;
+  repeated Metadata metadata = 6;
+}
+
+enum DataType {
+  LOGIN_PASSWORD = 0;
+  TEXT = 1;
+  BINARY = 2;
+  CARD = 3;
+}
+
+enum ResolutionStrategy {
+  USE_CLIENT_VERSION = 0;
+  USE_SERVER_VERSION = 1;
+  MERGE_VERSIONS = 2;
+}
+
+enum Operation {
+  ADD = 0;
+  UPDATE = 1;
+  DELETE = 2;
+}
+
+message Metadata {
+  string key = 1;
+  string value = 2;
 }

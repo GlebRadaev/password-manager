@@ -7,23 +7,16 @@ import "google/api/annotations.proto";
 import "validate/validate.proto";
 
 service DataService {
-  rpc CreateData(CreateDataRequest) returns (CreateDataResponse) {
+  rpc AddData(AddDataRequest) returns (AddDataResponse) {
     option (google.api.http) = {
-      post: "/v1/data/create"
-      body: "*"
-    };
-  }
-
-  rpc GetData(GetDataRequest) returns (GetDataResponse) {
-    option (google.api.http) = {
-      post: "/v1/data/get"
+      post: "/v1/data/add"
       body: "*"
     };
   }
 
   rpc UpdateData(UpdateDataRequest) returns (UpdateDataResponse) {
     option (google.api.http) = {
-      put: "/v1/data/update"
+      post: "/v1/data/update"
       body: "*"
     };
   }
@@ -40,43 +33,49 @@ service DataService {
       get: "/v1/data/list"
     };
   }
+
+  rpc GetData(GetDataRequest) returns (GetDataResponse) {
+    option (google.api.http) = {
+      get: "/v1/data/get"
+    };
+  }
+
+  rpc BatchProcess(BatchProcessRequest) returns (BatchProcessResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/batch"
+      body: "*"
+    };
+  }
 }
 
-// Типы данных
 enum DataType {
   LOGIN_PASSWORD = 0;
   TEXT = 1;
   BINARY = 2;
-  BANK_CARD = 3;
+  CARD = 3;
 }
 
-message CreateDataRequest {
+message Metadata {
+  string key = 1;
+  string value = 2;
+}
+
+message AddDataRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
-  DataType type = 2;
+  DataType type = 2 [(validate.rules).enum = {in: [0, 1, 2, 3]}];
   bytes data = 3 [(validate.rules).bytes.min_len = 1];
-  map<string, string> metadata = 4;
+  repeated Metadata metadata = 4;
 }
 
-message CreateDataResponse {
+message AddDataResponse {
   string data_id = 1;
-}
-
-message GetDataRequest {
-  string user_id = 1 [(validate.rules).string.uuid = true];
-  string data_id = 2 [(validate.rules).string.uuid = true];
-}
-
-message GetDataResponse {
-  DataType type = 1;
-  bytes data = 2;
-  map<string, string> metadata = 3;
 }
 
 message UpdateDataRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
   string data_id = 2 [(validate.rules).string.uuid = true];
   bytes data = 3 [(validate.rules).bytes.min_len = 1];
-  map<string, string> metadata = 4;
+  repeated Metadata metadata = 4;
 }
 
 message UpdateDataResponse {
@@ -97,5 +96,48 @@ message ListDataRequest {
 }
 
 message ListDataResponse {
-  repeated GetDataResponse data = 1;
+  repeated DataEntry entries = 1;
+}
+
+message GetDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message GetDataResponse {
+  DataEntry entry = 1;
+}
+
+message DataEntry {
+  string data_id = 1;
+  DataType type = 2;
+  bytes data = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  repeated Metadata metadata = 6;
+}
+
+message BatchProcessRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  repeated DataOperation operations = 2 [(validate.rules).repeated.min_items = 1, (validate.rules).repeated.max_items = 100];
+}
+
+message DataOperation {
+  oneof operation {
+    AddDataRequest add = 1;
+    UpdateDataRequest update = 2;
+    DeleteDataRequest delete = 3;
+  }
+}
+
+message BatchProcessResponse {
+  repeated DataOperationResult results = 1;
+}
+
+message DataOperationResult {
+  oneof result {
+    AddDataResponse add = 1;
+    UpdateDataResponse update = 2;
+    DeleteDataResponse delete = 3;
+  }
 }

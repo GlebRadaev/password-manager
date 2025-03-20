@@ -10,10 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+type LocalConfig struct {
+	DataSvc *app.GRPCClient `mapstructure:"dataSvc" validate:"required"`
+}
 type Config struct {
-	Env        string `mapstructure:"env" envconfig:"ENVIRONMENT" validate:"required"`
-	LogLevel   string `mapstructure:"log_level" validate:"required"`
-	app.Config `mapstructure:"sync"`
+	Env         string `mapstructure:"env" envconfig:"ENVIRONMENT" validate:"required"`
+	LogLevel    string `mapstructure:"log_level" validate:"required"`
+	app.Config  `mapstructure:"sync"`
+	LocalConfig `mapstructure:"sync"`
 }
 
 func New() (*Config, error) {
