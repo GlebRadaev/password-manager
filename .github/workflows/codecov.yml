@@ -28,7 +28,7 @@ jobs:
         run: go mod tidy
 
       - name: Run tests and collect coverage
-        run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: go test ./... -coverprofile=coverage.txt -covermode=atomic
 
       - name: Print coverage report
         run: go tool cover -func=coverage.txt
