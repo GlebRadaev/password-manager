@@ -1,7 +1,10 @@
+// Package repo provides data access operations for password entries.
+// It handles database interactions including CRUD operations and batch processing.
 package repo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -12,18 +15,20 @@ import (
 	"github.com/GlebRadaev/password-manager/internal/data/models"
 )
 
-var (
-	ErrDataNotFound = errors.New("data not found")
-)
+// ErrDataNotFound is returned when requested data is not found in the database.
+var ErrDataNotFound = errors.New("data not found")
 
+// Repo provides methods for interacting with the data storage.
 type Repo struct {
 	db pg.Database
 }
 
+// New creates a new Repo instance with the given database connection.
 func New(db pg.Database) *Repo {
 	return &Repo{db: db}
 }
 
+// AddList inserts multiple data entries in a batch and returns their IDs.
 func (r *Repo) AddList(ctx context.Context, entries []models.DataEntry) ([]string, error) {
 	batch := &pgx.Batch{}
 	for _, entry := range entries {
@@ -61,6 +66,8 @@ func (r *Repo) AddList(ctx context.Context, entries []models.DataEntry) ([]strin
 	return ids, nil
 }
 
+// UpdateData modifies an existing data entry.
+// Returns ErrDataNotFound if no matching entry exists.
 func (r *Repo) UpdateData(ctx context.Context, entry models.DataEntry) error {
 	query := `
 		UPDATE data.entries
@@ -84,6 +91,8 @@ func (r *Repo) UpdateData(ctx context.Context, entry models.DataEntry) error {
 	return nil
 }
 
+// DeleteList removes multiple entries by their IDs for a specific user.
+// Returns ErrDataNotFound if no matching entries exist.
 func (r *Repo) DeleteList(ctx context.Context, userID string, dataIDs []string) error {
 	if len(dataIDs) == 0 {
 		return nil
@@ -106,11 +115,12 @@ func (r *Repo) DeleteList(ctx context.Context, userID string, dataIDs []string) 
 	return nil
 }
 
+// ListData retrieves all entries for a specific user.
 func (r *Repo) ListData(ctx context.Context, userID string) ([]models.DataEntry, error) {
 	query := `
-		SELECT id, type, data, metadata, updated_at
-		FROM data.entries
-		WHERE user_id = $1`
+        SELECT id, type, data, metadata, created_at, updated_at
+        FROM data.entries
+        WHERE user_id = $1`
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list data: %w", err)
@@ -120,15 +130,23 @@ func (r *Repo) ListData(ctx context.Context, userID string) ([]models.DataEntry,
 	var entries []models.DataEntry
 	for rows.Next() {
 		var entry models.DataEntry
+		var metadataJSON []byte
+
 		if err := rows.Scan(
 			&entry.ID,
 			&entry.Type,
 			&entry.Data,
-			&entry.Metadata,
+			&metadataJSON,
+			&entry.CreatedAt,
 			&entry.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan data entry: %w", err)
 		}
+
+		if err := json.Unmarshal(metadataJSON, &entry.Metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+		}
+
 		entries = append(entries, entry)
 	}
 

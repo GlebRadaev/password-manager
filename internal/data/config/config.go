@@ -1,21 +1,26 @@
+// Package config handles app configuration from YAML and env vars
 package config
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/GlebRadaev/password-manager/internal/common/app"
 	"github.com/go-playground/validator/v10"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
+
+	"github.com/GlebRadaev/password-manager/internal/common/app"
 )
 
+// Config contains app settings
 type Config struct {
 	Env        string `mapstructure:"env" envconfig:"ENVIRONMENT" validate:"required"`
 	LogLevel   string `mapstructure:"log_level" validate:"required"`
 	app.Config `mapstructure:"data"`
 }
 
+// New loads config from YAML + env vars and validates it
+// ENVIRONMENT var determines which YAML file to load (dev.config.yaml etc)
 func New() (*Config, error) {
 	environment, ok := os.LookupEnv("ENVIRONMENT")
 	if !ok {

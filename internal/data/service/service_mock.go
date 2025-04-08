@@ -13,9 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	pg "github.com/GlebRadaev/password-manager/internal/common/pg"
 	models "github.com/GlebRadaev/password-manager/internal/data/models"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRepo is a mock of Repo interface.

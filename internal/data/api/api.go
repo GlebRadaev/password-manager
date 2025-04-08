@@ -1,3 +1,4 @@
+// Package api implements gRPC data service handlers
 package api
 
 //go:generate mockgen -destination=api_mock.go -source=api.go -package=api
@@ -6,13 +7,17 @@ import (
 	"errors"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/GlebRadaev/password-manager/internal/data/models"
 	"github.com/GlebRadaev/password-manager/internal/data/service"
 	"github.com/GlebRadaev/password-manager/pkg/data"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
+// Service defines data operations interface
 type Service interface {
 	AddData(ctx context.Context, entry models.DataEntry) (string, error)
 	UpdateData(ctx context.Context, entry models.DataEntry) error
@@ -21,16 +26,19 @@ type Service interface {
 	BatchProcess(ctx context.Context, userID string, operations []*data.DataOperation) ([]*data.DataOperationResult, error)
 }
 
-type Api struct {
+// API implements data service gRPC server
+type API struct {
 	data.UnimplementedDataServiceServer
 	srv Service
 }
 
-func New(srv Service) *Api {
-	return &Api{srv: srv}
+// New creates data API instance
+func New(srv Service) *API {
+	return &API{srv: srv}
 }
 
-func (s *Api) AddData(ctx context.Context, req *data.AddDataRequest) (*data.AddDataResponse, error) {
+// AddData handles new data entry creation
+func (s *API) AddData(ctx context.Context, req *data.AddDataRequest) (*data.AddDataResponse, error) {
 	if err := ValidateAddDataRequest(req); err != nil {
 		return nil, err
 	}
@@ -48,7 +56,8 @@ func (s *Api) AddData(ctx context.Context, req *data.AddDataRequest) (*data.AddD
 	return &data.AddDataResponse{DataId: dataID}, nil
 }
 
-func (s *Api) UpdateData(ctx context.Context, req *data.UpdateDataRequest) (*data.UpdateDataResponse, error) {
+// UpdateData modifies existing data entry
+func (s *API) UpdateData(ctx context.Context, req *data.UpdateDataRequest) (*data.UpdateDataResponse, error) {
 	if err := ValidateUpdateDataRequest(req); err != nil {
 		return nil, err
 	}
@@ -66,7 +75,8 @@ func (s *Api) UpdateData(ctx context.Context, req *data.UpdateDataRequest) (*dat
 	return &data.UpdateDataResponse{Message: "Data updated successfully"}, nil
 }
 
-func (s *Api) DeleteData(ctx context.Context, req *data.DeleteDataRequest) (*data.DeleteDataResponse, error) {
+// DeleteData removes data entry
+func (s *API) DeleteData(ctx context.Context, req *data.DeleteDataRequest) (*data.DeleteDataResponse, error) {
 	if err := ValidateDeleteDataRequest(req); err != nil {
 		return nil, err
 	}
@@ -77,7 +87,8 @@ func (s *Api) DeleteData(ctx context.Context, req *data.DeleteDataRequest) (*dat
 	return &data.DeleteDataResponse{Message: "Data deleted successfully"}, nil
 }
 
-func (s *Api) ListData(ctx context.Context, req *data.ListDataRequest) (*data.ListDataResponse, error) {
+// ListData returns all user's data entries
+func (s *API) ListData(ctx context.Context, req *data.ListDataRequest) (*data.ListDataResponse, error) {
 	if err := ValidateListDataRequest(req); err != nil {
 		return nil, err
 	}
@@ -97,10 +108,16 @@ func (s *Api) ListData(ctx context.Context, req *data.ListDataRequest) (*data.Li
 			UpdatedAt: entry.UpdatedAt.Unix(),
 		})
 	}
+	log.Info().
+		Str("user_id", req.UserId).
+		Int("entry_count", len(entries)).
+		Interface("entries", entries).
+		Msg("Fetched user data entries")
 	return &data.ListDataResponse{Entries: protoEntries}, nil
 }
 
-func (s *Api) BatchProcess(ctx context.Context, req *data.BatchProcessRequest) (*data.BatchProcessResponse, error) {
+// BatchProcess executes multiple operations at once
+func (s *API) BatchProcess(ctx context.Context, req *data.BatchProcessRequest) (*data.BatchProcessResponse, error) {
 	if err := ValidateBatchProcessRequest(req); err != nil {
 		return nil, err
 	}
@@ -111,6 +128,7 @@ func (s *Api) BatchProcess(ctx context.Context, req *data.BatchProcessRequest) (
 	return &data.BatchProcessResponse{Results: results}, nil
 }
 
+// Helper functions for type conversion
 func toProtoDataType(dt models.DataType) data.DataType {
 	switch dt {
 	case models.LoginPassword:
@@ -126,6 +144,7 @@ func toProtoDataType(dt models.DataType) data.DataType {
 	}
 }
 
+// Helper functions for type conversion
 func toModelMetadata(protoMetadata []*data.Metadata) []models.Metadata {
 	var metadata []models.Metadata
 	for _, m := range protoMetadata {
@@ -137,6 +156,7 @@ func toModelMetadata(protoMetadata []*data.Metadata) []models.Metadata {
 	return metadata
 }
 
+// Helper functions for type conversion
 func toProtoMetadata(metadata []models.Metadata) []*data.Metadata {
 	var protoMetadata []*data.Metadata
 	for _, m := range metadata {
@@ -148,6 +168,7 @@ func toProtoMetadata(metadata []models.Metadata) []*data.Metadata {
 	return protoMetadata
 }
 
+// FromError converts domain errors to gRPC status errors
 func FromError(err error, operation string) error {
 	if err == nil {
 		return nil

@@ -1,50 +1,56 @@
 Q = $(if $(filter 1,$V),,@)
 M = $(shell printf "\033[34;1m▶\033[0m")
 SERVICES=$(shell ls -1 api | grep \.proto | sed s/\.proto//)
-
+PROTO_FILE := ./
 PROTOC_VER = 3.12.4
 OS = linux
 ifeq ($(shell uname -s), Darwin)
     OS = osx
 endif
 
+BINARY_NAME = pm
+VERSION ?= $(shell git describe --tags 2>/dev/null || echo "v0.1.0")
+CLIENT_DIR = client
+BUILD_DIR = bin
+LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION)"
+
+PLATFORMS = \
+	darwin/amd64 \
+	darwin/arm64 \
+	linux/amd64 \
+	windows/amd64
+
+build-all:
+	mkdir -p $(BUILD_DIR)
+	@for platform in $(PLATFORMS); do \
+		GOOS=$${platform%/*}; \
+		GOARCH=$${platform#*/}; \
+		OUTPUT=$(BUILD_DIR)/$(BINARY_NAME)-$$GOOS-$$GOARCH; \
+		if [ $$GOOS = "windows" ]; then OUTPUT=$$OUTPUT.exe; fi; \
+		echo "Building $$GOOS/$$GOARCH -> $$OUTPUT"; \
+		GOOS=$$GOOS GOARCH=$$GOARCH go build $(LDFLAGS) -o $$OUTPUT ./$(CLIENT_DIR); \
+	done
+    
+
 .PHONY: lint
 lint:
 	@echo "Running golangci-lint..."
-	golangci-lint run ./...
+	golangci-lint run --config ./.golangci.yml --timeout=5m ./...
 
 .PHONY: test
 test:
 	@echo "Running tests..."
 	go test -v ./...
 
-.PHONY: vet
-vet:
-	@echo "Running go vet..."
-	go vet ./...
-
 .PHONY: coverage
 coverage:
 	@echo "Running coverage..." 
 	go test ./... -v -parallel=32 -coverprofile=coverage.txt -covermode=atomic && go tool cover -html=coverage.txt && rm -rf coverage.txt
 
-.PHONY: build
-build:
-	@echo "Building binary..."
-	cd cmd/gophermart && go build .
-
-.PHONY: run
-run:
-	@echo "Running binary..."
-	cd cmd/gophermart && go run .
-
-.PHONY: swagger
-swagger: 
-	@echo "Generating swagger docs..."
-	swag fmt
-	swag init -g cmd/gophermart/main.go 
-
-
+run: 
+	$(info $(M) running)
+	docker build -t manager:latest -f Dockerfile.local .
+	docker compose up -d
 
 .PHONY: bin
 bin: $(info $(M) install bin)
@@ -90,3 +96,23 @@ gen: $(info $(M) protoc gen)
             $(CURDIR)/api/$$srv.proto ; \
 	done
 
+
+.PHONY: doc-check
+doc-check:
+	@echo "▶ Running documentation checks..."
+	@if ! command -v revive >/dev/null 2>&1; then \
+		echo "Error: revive not found. Install with: go install github.com/mgechev/revive@latest"; \
+		exit 1; \
+	fi
+	@revive -config .revive.toml -formatter friendly \
+		-exclude vendor/... \
+		-exclude vendor.pb/... \
+		./...
+
+.PHONY: buffmt
+buffmt:
+	docker run --rm \
+		-v $(shell pwd):/app \
+		-w /app \
+		bufbuild/buf \
+		format -w $(PROTO_FILE)

@@ -149,7 +149,7 @@
       }
     },
     "/v1/data/list": {
-      "get": {
+      "post": {
         "operationId": "DataService_ListData",
         "responses": {
           "200": {
@@ -167,10 +167,12 @@
         },
         "parameters": [
           {
-            "name": "userId",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/dataListDataRequest"
+            }
           }
         ],
         "tags": [
@@ -361,6 +363,14 @@
       "properties": {
         "entry": {
           "$ref": "#/definitions/dataDataEntry"
+        }
+      }
+    },
+    "dataListDataRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
         }
       }
     },

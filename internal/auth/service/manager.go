@@ -1,3 +1,5 @@
+// Package service provides core authentication business logic.
+// Handles password hashing, JWT tokens, and OTP generation/validation.
 package service
 
 import (
@@ -7,18 +9,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GlebRadaev/password-manager/internal/auth/config"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/GlebRadaev/password-manager/internal/auth/config"
 )
 
+// Manager handles security operations for authentication.
 type Manager struct {
 	secretKey       string
 	tokenExpiration time.Duration
 	otpExpiration   time.Duration
 }
 
+// NewManager creates a new Manager with security configurations.
 func NewManager(cfg config.LocalConfig) *Manager {
 	return &Manager{
 		secretKey:       cfg.SecretKey,
@@ -27,6 +31,7 @@ func NewManager(cfg config.LocalConfig) *Manager {
 	}
 }
 
+// Hash generates bcrypt hash of the password.
 func (m *Manager) Hash(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -35,10 +40,16 @@ func (m *Manager) Hash(password string) (string, error) {
 	return string(hash), nil
 }
 
+// Compare verifies password against its hash.
 func (m *Manager) Compare(hashedPassword, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	if err != nil {
+		return fmt.Errorf("password comparison failed: %w", err)
+	}
+	return nil
 }
 
+// GenerateToken creates JWT access token for user.
 func (m *Manager) GenerateToken(userID string) (string, time.Time, error) {
 	expiresAt := time.Now().Add(m.tokenExpiration)
 
@@ -55,6 +66,7 @@ func (m *Manager) GenerateToken(userID string) (string, time.Time, error) {
 	return tokenString, expiresAt, nil
 }
 
+// ValidateToken verifies JWT token and extracts userID.
 func (m *Manager) ValidateToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -79,6 +91,7 @@ func (m *Manager) ValidateToken(tokenString string) (string, error) {
 	return "", errors.New("invalid token")
 }
 
+// GenerateOTP creates random 6-character OTP code.
 func (m *Manager) GenerateOTP() (string, time.Time, error) {
 	bytes := make([]byte, 6)
 	if _, err := rand.Read(bytes); err != nil {
@@ -91,6 +104,7 @@ func (m *Manager) GenerateOTP() (string, time.Time, error) {
 	return otpCode, expiresAt, nil
 }
 
+// ValidateOTP checks if provided OTP matches stored one and isn't expired.
 func (m *Manager) ValidateOTP(storedOTPCode string, storedExpiresAt time.Time, providedOTPCode string) (bool, error) {
 	if time.Now().After(storedExpiresAt) {
 		return false, errors.New("OTP has expired")
@@ -103,21 +117,49 @@ func (m *Manager) ValidateOTP(storedOTPCode string, storedExpiresAt time.Time, p
 	return true, nil
 }
 
-func (m *Manager) GenerateTOTPSecret(userID string) (string, error) {
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "PasswordManager",
-		AccountName: userID,
+// GenerateRefreshToken creates long-lived refresh token.
+func (m *Manager) GenerateRefreshToken(userID string) (string, time.Time, error) {
+	expiresAt := time.Now().Add(m.tokenExpiration * 2)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     expiresAt.Unix(),
+		"type":    "refresh",
 	})
+
+	tokenString, err := token.SignedString([]byte(m.secretKey))
 	if err != nil {
-		return "", fmt.Errorf("failed to generate TOTP secret: %w", err)
+		return "", time.Time{}, fmt.Errorf("failed to sign refresh token: %w", err)
 	}
-	return key.Secret(), nil
+
+	return tokenString, expiresAt, nil
 }
 
-func (m *Manager) ValidateTOTP(secret, code string) (bool, error) {
-	valid := totp.Validate(code, secret)
-	if !valid {
-		return false, errors.New("invalid TOTP code")
+// ValidateRefreshToken verifies refresh token and extracts userID.
+func (m *Manager) ValidateRefreshToken(refreshToken string) (string, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(m.secretKey), nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to parse refresh token: %w", err)
 	}
-	return true, nil
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if claims["type"] != "refresh" {
+			return "", errors.New("invalid token type")
+		}
+
+		userIDStr, ok := claims["user_id"].(string)
+		if !ok {
+			return "", errors.New("invalid user_id in token")
+		}
+
+		return userIDStr, nil
+	}
+
+	return "", errors.New("invalid refresh token")
 }

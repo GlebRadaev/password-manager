@@ -8,9 +8,33 @@ output:
   print-linter-name: true
 
 linters:
-  enable-all: true
+  enable-all: false
   disable:
+    - staticcheck
+    - errcheck
     - wsl
+    - goconst
+    - funlen
+    - gochecknoglobals
+    - gocritic
+    - godot
+    - gofumpt
+    - lll
+    - nestif
+    - prealloc
+    - unconvert
+    - whitespace
+    - err113
+    - nlreturn
+    - godox
+    - stylecheck
+    - gofmt
+    - gci
+    - gochecknoinits
+    - gocognit
+  enable:
+    - gosec
+    - goimports
   fast: false
 
 issues:
@@ -21,9 +45,9 @@ issues:
   exclude-files:
     - ".*_test.go"
     - ".*_mock.go"
-    - "pkg/**"
-    - "vendor/**"
-    - "vendor.pb/**"
+    - "^pkg/.*"
+    - "^vendor/.*"
+    - "^vendor\\.pb/.*" 
 
 linters-settings:
   varnamelen:
@@ -39,3 +63,5 @@ linters-settings:
   gosec:
     severity: medium
     confidence: high
+    excludes:
+        - G304

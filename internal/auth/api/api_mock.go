@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	models "github.com/GlebRadaev/password-manager/internal/auth/models"
 	gomock "go.uber.org/mock/gomock"
+
+	models "github.com/GlebRadaev/password-manager/internal/auth/models"
 )
 
 // MockService is a mock of Service interface.
@@ -72,19 +73,37 @@ func (mr *MockServiceMockRecorder) ListSessions(ctx, userID any) *gomock.Call {
 }
 
 // Login mocks base method.
-func (m *MockService) Login(ctx context.Context, username, password string) (string, int64, error) {
+func (m *MockService) Login(ctx context.Context, username, password string) (string, string, int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", ctx, username, password)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(int64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(int64)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
 // Login indicates an expected call of Login.
 func (mr *MockServiceMockRecorder) Login(ctx, username, password any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockService)(nil).Login), ctx, username, password)
+}
+
+// RefreshToken mocks base method.
+func (m *MockService) RefreshToken(ctx context.Context, refreshToken string) (string, string, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(int64)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// RefreshToken indicates an expected call of RefreshToken.
+func (mr *MockServiceMockRecorder) RefreshToken(ctx, refreshToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockService)(nil).RefreshToken), ctx, refreshToken)
 }
 
 // Register mocks base method.

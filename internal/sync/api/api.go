@@ -1,3 +1,4 @@
+// Package api implements gRPC server interface for sync service.
 package api
 
 //go:generate mockgen -destination=api_mock.go -source=api.go -package=api
@@ -6,32 +7,39 @@ import (
 	"errors"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/GlebRadaev/password-manager/internal/sync/models"
 	"github.com/GlebRadaev/password-manager/internal/sync/service"
 	"github.com/GlebRadaev/password-manager/pkg/sync"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
+// Service defines the business logic interface for sync operations.
 type Service interface {
 	SyncData(ctx context.Context, userID string, clientData []models.ClientData) ([]models.Conflict, error)
 	ResolveConflict(ctx context.Context, conflictID string, strategy models.ResolutionStrategy) error
 	ListConflicts(ctx context.Context, userID string) ([]models.Conflict, error)
 }
 
-type Api struct {
+// API implements sync.SyncServiceServer gRPC interface.
+type API struct {
 	sync.UnimplementedSyncServiceServer
 	srv Service
 }
 
-func New(srv Service) *Api {
-	return &Api{srv: srv}
+// New creates new Api instance with given service.
+func New(srv Service) *API {
+	return &API{srv: srv}
 }
 
-func (s *Api) SyncData(ctx context.Context, req *sync.SyncDataRequest) (*sync.SyncDataResponse, error) {
+// SyncData handles data synchronization between client and server.
+// Returns list of conflicts if any occur during sync.
+func (s *API) SyncData(ctx context.Context, req *sync.SyncDataRequest) (*sync.SyncDataResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
+
 	var clientData []models.ClientData
 	for _, entry := range req.ClientData {
 		var metadata []models.Metadata
@@ -72,10 +80,12 @@ func (s *Api) SyncData(ctx context.Context, req *sync.SyncDataRequest) (*sync.Sy
 	return &sync.SyncDataResponse{Conflicts: protoConflicts}, nil
 }
 
-func (s *Api) ResolveConflict(ctx context.Context, req *sync.ResolveConflictRequest) (*sync.ResolveConflictResponse, error) {
+// ResolveConflict handles conflict resolution with specified strategy.
+func (s *API) ResolveConflict(ctx context.Context, req *sync.ResolveConflictRequest) (*sync.ResolveConflictResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
+
 	strategy := toModelResolutionStrategy(req.Strategy)
 	if err := s.srv.ResolveConflict(ctx, req.ConflictId, strategy); err != nil {
 		if errors.Is(err, service.ErrConflictNotFound) {
@@ -87,31 +97,40 @@ func (s *Api) ResolveConflict(ctx context.Context, req *sync.ResolveConflictRequ
 	return &sync.ResolveConflictResponse{Message: "Conflict resolved successfully"}, nil
 }
 
-func (s *Api) ListConflicts(ctx context.Context, req *sync.ListConflictsRequest) (*sync.ListConflictsResponse, error) {
+// ListConflicts returns all unresolved conflicts for given user.
+func (s *API) ListConflicts(ctx context.Context, req *sync.ListConflictsRequest) (*sync.ListConflictsResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
+
 	conflicts, err := s.srv.ListConflicts(ctx, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	var protoConflicts []*sync.Conflict
-	for _, conflict := range conflicts {
-		protoConflicts = append(protoConflicts, &sync.Conflict{
-			ConflictId: conflict.ID,
-			DataId:     conflict.DataID,
-			ClientData: conflict.ClientData,
-			ServerData: conflict.ServerData,
-			Resolved:   conflict.Resolved,
-			CreatedAt:  conflict.CreatedAt.Unix(),
-			UpdatedAt:  conflict.UpdatedAt.Unix(),
-		})
-	}
-
-	return &sync.ListConflictsResponse{Conflicts: protoConflicts}, nil
+	return &sync.ListConflictsResponse{
+		Conflicts: convertConflictsToProto(conflicts),
+	}, nil
 }
 
+// convertConflictsToProto converts domain conflicts to protobuf format.
+func convertConflictsToProto(conflicts []models.Conflict) []*sync.Conflict {
+	var protoConflicts []*sync.Conflict
+	for _, c := range conflicts {
+		protoConflicts = append(protoConflicts, &sync.Conflict{
+			ConflictId: c.ID,
+			DataId:     c.DataID,
+			ClientData: c.ClientData,
+			ServerData: c.ServerData,
+			Resolved:   c.Resolved,
+			CreatedAt:  c.CreatedAt.Unix(),
+			UpdatedAt:  c.UpdatedAt.Unix(),
+		})
+	}
+	return protoConflicts
+}
+
+// toModelDataType converts protobuf DataType to domain model.
 func toModelDataType(dt sync.DataType) models.DataType {
 	switch dt {
 	case sync.DataType_LOGIN_PASSWORD:
@@ -127,6 +146,7 @@ func toModelDataType(dt sync.DataType) models.DataType {
 	}
 }
 
+// toProtoDataType converts domain DataType to protobuf (unused in current implementation).
 func toProtoDataType(dt models.DataType) sync.DataType {
 	switch dt {
 	case models.LoginPassword:
@@ -142,6 +162,7 @@ func toProtoDataType(dt models.DataType) sync.DataType {
 	}
 }
 
+// toModelResolutionStrategy converts protobuf ResolutionStrategy to domain model.
 func toModelResolutionStrategy(strategy sync.ResolutionStrategy) models.ResolutionStrategy {
 	switch strategy {
 	case sync.ResolutionStrategy_USE_CLIENT_VERSION:
@@ -155,6 +176,7 @@ func toModelResolutionStrategy(strategy sync.ResolutionStrategy) models.Resoluti
 	}
 }
 
+// toModelOperation converts protobuf Operation to domain model.
 func toModelOperation(op sync.Operation) models.Operation {
 	switch op {
 	case sync.Operation_ADD:

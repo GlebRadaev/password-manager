@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 package api.sync;
-option go_package = "./sync";
 
 import "google/api/annotations.proto";
 import "validate/validate.proto";
+
+option go_package = "./sync";
 
 service SyncService {
   rpc SyncData(SyncDataRequest) returns (SyncDataResponse) {
@@ -22,9 +23,7 @@ service SyncService {
   }
 
   rpc ListConflicts(ListConflictsRequest) returns (ListConflictsResponse) {
-    option (google.api.http) = {
-      get: "/v1/sync/conflicts"
-    };
+    option (google.api.http) = {get: "/v1/sync/conflicts"};
   }
 }
 
