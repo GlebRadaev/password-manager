@@ -1,14 +1,17 @@
+// Package api provides validation functions for auth service requests.
 package api
 
 import (
 	"errors"
 	"strings"
 
-	"github.com/GlebRadaev/password-manager/pkg/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/GlebRadaev/password-manager/pkg/auth"
 )
 
+// Common validation errors
 var (
 	ErrInvalidUsername = errors.New("username must be between 3 and 20 characters and contain only letters, numbers, and underscores")
 	ErrInvalidPassword = errors.New("password must be between 8 and 50 characters")
@@ -18,31 +21,33 @@ var (
 	ErrInvalidOTPCode  = errors.New("OTP code must be exactly 6 characters long")
 )
 
+// ValidateRegisterRequest validates RegisterRequest fields.
 func ValidateRegisterRequest(req *auth.RegisterRequest) error {
 	if err := req.Validate(); err != nil {
 		fieldName := extractFieldFromError(err.Error())
 		switch fieldName {
 		case "Username":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidUsername.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidUsername.Error())
 		case "Password":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidPassword.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidPassword.Error())
 		case "Email":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidEmail.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidEmail.Error())
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
+			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
 		}
 	}
 	return nil
 }
 
+// ValidateLoginRequest validates LoginRequest fields.
 func ValidateLoginRequest(req *auth.LoginRequest) error {
 	if err := req.Validate(); err != nil {
 		fieldName := extractFieldFromError(err.Error())
 		switch fieldName {
 		case "Username":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidUsername.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidUsername.Error())
 		case "Password":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidPassword.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidPassword.Error())
 		default:
 			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
 		}
@@ -50,12 +55,13 @@ func ValidateLoginRequest(req *auth.LoginRequest) error {
 	return nil
 }
 
+// ValidateTokenRequest validates ValidateTokenRequest fields.
 func ValidateTokenRequest(req *auth.ValidateTokenRequest) error {
 	if err := req.Validate(); err != nil {
 		fieldName := extractFieldFromError(err.Error())
 		switch fieldName {
 		case "Token":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidToken.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidToken.Error())
 		default:
 			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
 		}
@@ -63,12 +69,13 @@ func ValidateTokenRequest(req *auth.ValidateTokenRequest) error {
 	return nil
 }
 
+// ValidateGenerateOTPRequest validates GenerateOTPRequest fields.
 func ValidateGenerateOTPRequest(req *auth.GenerateOTPRequest) error {
 	if err := req.Validate(); err != nil {
 		fieldName := extractFieldFromError(err.Error())
 		switch fieldName {
 		case "UserID":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidUserID.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidUserID.Error())
 		default:
 			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
 		}
@@ -76,14 +83,15 @@ func ValidateGenerateOTPRequest(req *auth.GenerateOTPRequest) error {
 	return nil
 }
 
+// ValidateOTPRequest validates ValidateOTPRequest fields.
 func ValidateOTPRequest(req *auth.ValidateOTPRequest) error {
 	if err := req.Validate(); err != nil {
 		fieldName := extractFieldFromError(err.Error())
 		switch fieldName {
 		case "UserID":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidUserID.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidUserID.Error())
 		case "OtpCode":
-			return status.Errorf(codes.InvalidArgument, ErrInvalidOTPCode.Error())
+			return status.Error(codes.InvalidArgument, ErrInvalidOTPCode.Error())
 		default:
 			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
 		}
@@ -91,6 +99,21 @@ func ValidateOTPRequest(req *auth.ValidateOTPRequest) error {
 	return nil
 }
 
+// ValidateRefreshTokenRequest validates RefreshTokenRequest fields.
+func ValidateRefreshTokenRequest(req *auth.RefreshTokenRequest) error {
+	if err := req.Validate(); err != nil {
+		fieldName := extractFieldFromError(err.Error())
+		switch fieldName {
+		case "RefreshToken":
+			return status.Error(codes.InvalidArgument, ErrInvalidToken.Error())
+		default:
+			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
+		}
+	}
+	return nil
+}
+
+// extractFieldFromError extracts field name from validation error string.
 func extractFieldFromError(errStr string) string {
 	parts := strings.Split(errStr, ".")
 	if len(parts) < 2 {

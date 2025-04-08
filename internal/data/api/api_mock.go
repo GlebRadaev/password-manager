@@ -13,9 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	models "github.com/GlebRadaev/password-manager/internal/data/models"
 	data "github.com/GlebRadaev/password-manager/pkg/data"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockService is a mock of Service interface.

@@ -1,3 +1,5 @@
+// Package application provides the main application logic for the auth service.
+// It handles initialization, configuration, and lifecycle management of gRPC and HTTP servers.
 package application
 
 import (
@@ -9,58 +11,89 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GlebRadaev/password-manager/internal/auth/api"
-	"github.com/GlebRadaev/password-manager/internal/auth/config"
-	"github.com/GlebRadaev/password-manager/internal/auth/migrations"
-	"github.com/GlebRadaev/password-manager/internal/auth/repo"
-	"github.com/GlebRadaev/password-manager/internal/auth/service"
-	"github.com/GlebRadaev/password-manager/internal/common/app"
-	"github.com/GlebRadaev/password-manager/internal/common/pg"
-	"github.com/GlebRadaev/password-manager/pkg/auth"
-
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/GlebRadaev/password-manager/internal/auth/api"
+	"github.com/GlebRadaev/password-manager/internal/auth/config"
+	"github.com/GlebRadaev/password-manager/internal/auth/repo"
+	"github.com/GlebRadaev/password-manager/internal/auth/service"
+	"github.com/GlebRadaev/password-manager/internal/common/app"
+	"github.com/GlebRadaev/password-manager/internal/common/pg"
+	"github.com/GlebRadaev/password-manager/internal/common/swagger"
+	"github.com/GlebRadaev/password-manager/pkg/auth"
 )
 
 const (
+	// AppName defines the application name used in logging and configuration
 	AppName = "auth"
 )
 
+// Application represents the main application struct that orchestrates all components
 type Application struct {
 	cfg  *config.Config
-	api  *api.Api
+	api  *api.API
 	srv  *service.Service
 	repo *repo.Repository
 
 	errCh chan error
 	wg    sync.WaitGroup
+
+	// Dependency injection interfaces for testing
+	ConfigProvider     ConfigProvider
+	PgxPoolProvider    PgxPoolProvider
+	MigrationsExecutor MigrationsExecutor
+	NewListener        func(network, address string) (net.Listener, error)
+	NewGrpcServer      func(...grpc.ServerOption) GrpcServer
+	NewHTTPServer      func(addr string, handler http.Handler) HTTPServer
+	NewGrpcClient      func(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
 }
 
+// New creates a new Application instance with default providers
 func New() *Application {
 	return &Application{
-		errCh: make(chan error),
+		errCh:              make(chan error),
+		ConfigProvider:     &defaultConfigProvider{},
+		PgxPoolProvider:    &defaultPgxPoolProvider{},
+		MigrationsExecutor: &defaultMigrationsExecutor{},
+		NewListener:        net.Listen,
+		NewGrpcServer: func(opts ...grpc.ServerOption) GrpcServer {
+			return &grpcServerWrapper{
+				Server: grpc.NewServer(opts...),
+			}
+		},
+		NewHTTPServer: func(addr string, handler http.Handler) HTTPServer {
+			return &httpServerWrapper{
+				Server: &http.Server{
+					Addr:    addr,
+					Handler: handler,
+				},
+			}
+		},
+		NewGrpcClient: grpc.NewClient,
 	}
 }
 
+// Start initializes and starts the application components
+// Returns error if any initialization step fails
 func (a *Application) Start(ctx context.Context) error {
-	cfg, err := config.New()
+	cfg, err := a.ConfigProvider.New()
 	if err != nil {
 		return fmt.Errorf("can't init config: %w", err)
 	}
 	a.cfg = cfg
 	app.NewLogger(cfg.Env, AppName)
 
-	pool, err := getPgxpool(ctx, cfg.PgConfig)
+	pool, err := a.PgxPoolProvider.GetPgxpool(ctx, cfg.PgConfig)
 	if err != nil {
 		return fmt.Errorf("can't build pgx pool: %v", err)
 	}
 
-	if err = migrations.Exec(pool); err != nil {
+	if err = a.MigrationsExecutor.Exec(pool); err != nil {
 		return fmt.Errorf("can't executing migrations: %v", err)
 	}
 
@@ -74,7 +107,7 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("can't start grpc server: %w", err)
 	}
 
-	if err = a.startHttpServer(ctx); err != nil {
+	if err = a.startHTTPServer(ctx); err != nil {
 		return fmt.Errorf("can't start http server: %w", err)
 	}
 
@@ -82,13 +115,14 @@ func (a *Application) Start(ctx context.Context) error {
 	return nil
 }
 
+// startGrpcServer initializes and starts the gRPC server
 func (a *Application) startGrpcServer(ctx context.Context) error {
-	lis, err := net.Listen("tcp", a.cfg.GrpcPort)
+	lis, err := a.NewListener("tcp", a.cfg.GrpcPort)
 	if err != nil {
 		return fmt.Errorf("error listening on port '%s': %w", a.cfg.GrpcPort, err)
 	}
 
-	s := grpc.NewServer(
+	grpcSrv := a.NewGrpcServer(
 		grpc.ChainUnaryInterceptor(grpc_recovery.UnaryServerInterceptor()),
 	)
 
@@ -96,17 +130,17 @@ func (a *Application) startGrpcServer(ctx context.Context) error {
 	go func() {
 		defer a.wg.Done()
 		<-ctx.Done()
-		s.GracefulStop()
+		grpcSrv.GracefulStop()
 		lis.Close()
 	}()
 
-	auth.RegisterAuthServiceServer(s, a.api)
+	grpcSrv.RegisterAuthService(a.api)
 
 	a.wg.Add(1)
 	go func() {
 		defer a.wg.Done()
 		log.Info().Msgf("starting gRPC server on port %s", a.cfg.GrpcPort)
-		if err = s.Serve(lis); err != nil {
+		if err = grpcSrv.Serve(lis); err != nil {
 			a.errCh <- fmt.Errorf("grpc server exited with error: %w", err)
 		}
 	}()
@@ -114,8 +148,9 @@ func (a *Application) startGrpcServer(ctx context.Context) error {
 	return nil
 }
 
-func (a *Application) startHttpServer(ctx context.Context) error {
-	conn, err := grpc.NewClient(a.cfg.GrpcPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+// startHttpServer initializes and starts the HTTP gateway server
+func (a *Application) startHTTPServer(ctx context.Context) error {
+	conn, err := a.NewGrpcClient(a.cfg.GrpcPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("error conn to gRPC server: %w", err)
 	}
@@ -128,10 +163,11 @@ func (a *Application) startHttpServer(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error register auth service: %w", err)
 	}
-	server := http.Server{
-		Addr:    a.cfg.HttpPort,
-		Handler: mux,
-	}
+
+	handler := swagger.RegisterSwaggerUI(mux, AppName)
+
+	server := a.NewHTTPServer(a.cfg.HTTPPort, handler)
+
 	a.wg.Add(1)
 	go func() {
 		defer a.wg.Done()
@@ -152,7 +188,7 @@ func (a *Application) startHttpServer(ctx context.Context) error {
 	a.wg.Add(1)
 	go func() {
 		defer a.wg.Done()
-		log.Info().Msgf("starting http server on port %s", a.cfg.HttpPort)
+		log.Info().Msgf("starting http server on port %s", a.cfg.HTTPPort)
 		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.errCh <- fmt.Errorf("http server exited with error: %w", err)
 		}
@@ -161,6 +197,8 @@ func (a *Application) startHttpServer(ctx context.Context) error {
 	return nil
 }
 
+// Wait blocks until application shutdown is complete
+// Returns the first error that caused shutdown or nil if graceful shutdown
 func (a *Application) Wait(ctx context.Context, cancel context.CancelFunc) error {
 	var appErr error
 
@@ -185,17 +223,23 @@ func (a *Application) Wait(ctx context.Context, cancel context.CancelFunc) error
 	return appErr
 }
 
-func getPgxpool(ctx context.Context, cfg app.PgConfig) (*pgxpool.Pool, error) {
+// GetPgxpool creates a new pgx connection pool with the given configuration
+func GetPgxpool(ctx context.Context, cfg app.PgConfig) (*pgxpool.Pool, error) {
 	cfgpool, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse pg config: %w", err)
 	}
 	dbpool, err := pgxpool.NewWithConfig(ctx, cfgpool)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create pgx pool: %w", err)
 	}
 	if err = dbpool.Ping(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 	return dbpool, nil
+}
+
+// GetErrCh returns the application error channel
+func (a *Application) GetErrCh() chan error {
+	return a.errCh
 }

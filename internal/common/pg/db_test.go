@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
+	gomock "go.uber.org/mock/gomock"
 )
 
 type mockDatabase struct{}
@@ -27,7 +28,9 @@ func (m *mockDatabase) Exec(ctx context.Context, sql string, arguments ...any) (
 }
 
 func TestNew(t *testing.T) {
-	mockDB := &mockDatabase{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDB := NewMockDatabase(ctrl)
 	dbInstance := New(mockDB)
 	assert.NotNil(t, dbInstance)
 	assert.IsType(t, &db{}, dbInstance)

@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 package api.auth;
-option go_package = "./auth";
 
 import "google/api/annotations.proto";
 import "validate/validate.proto";
+
+option go_package = "./auth";
 
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse) {
@@ -23,7 +24,8 @@ service AuthService {
 
   rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
     option (google.api.http) = {
-      get: "/v1/auth/validate-token"
+      post: "/v1/auth/validate-token"
+      body: "*"
     };
   }
 
@@ -42,9 +44,7 @@ service AuthService {
   }
 
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
-    option (google.api.http) = {
-      get: "/v1/auth/sessions"
-    };
+    option (google.api.http) = {get: "/v1/auth/sessions"};
   }
 
   rpc TerminateSession(TerminateSessionRequest) returns (TerminateSessionResponse) {
@@ -53,11 +53,25 @@ service AuthService {
       body: "*"
     };
   }
+
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/refresh-token"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {
-  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"}];
-  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 50}];
+  string username = 1 [(validate.rules).string = {
+    min_len: 3
+    max_len: 20
+    pattern: "^[a-zA-Z0-9_]+$"
+  }];
+  string password = 2 [(validate.rules).string = {
+    min_len: 8
+    max_len: 50
+  }];
   string email = 3 [(validate.rules).string.email = true];
 }
 
@@ -67,13 +81,20 @@ message RegisterResponse {
 }
 
 message LoginRequest {
-  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 20}];
-  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 50}];
+  string username = 1 [(validate.rules).string = {
+    min_len: 3
+    max_len: 20
+  }];
+  string password = 2 [(validate.rules).string = {
+    min_len: 8
+    max_len: 50
+  }];
 }
 
 message LoginResponse {
-  string token = 1;
-  int64 expires_in = 2;
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
 }
 
 message ValidateTokenRequest {
@@ -126,4 +147,14 @@ message Session {
   string device_info = 2;
   int64 created_at = 3;
   int64 expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1 [(validate.rules).string.min_len = 10];
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
 }

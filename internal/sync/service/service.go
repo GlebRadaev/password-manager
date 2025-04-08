@@ -1,3 +1,5 @@
+// Package service implements synchronization logic between client and server data.
+// Handles conflict detection, resolution and data synchronization operations.
 package service
 
 //go:generate mockgen -destination=service_mock.go -source=service.go -package=service
@@ -7,18 +9,20 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"github.com/GlebRadaev/password-manager/internal/sync/models"
 	"github.com/GlebRadaev/password-manager/pkg/data"
-	"github.com/google/uuid"
 )
 
+// Common synchronization errors
 var (
 	ErrSyncFailed       = errors.New("sync failed")
 	ErrConflictNotFound = errors.New("conflict not found")
 )
 
+// Repo defines interface for conflict persistence operations
 type Repo interface {
 	GetConflict(ctx context.Context, conflictID string) (models.Conflict, error)
 	AddConflicts(ctx context.Context, conflicts []models.Conflict) error
@@ -27,6 +31,7 @@ type Repo interface {
 	DeleteConflicts(ctx context.Context, conflictIDs []string) error
 }
 
+// DataClient defines interface for data operations
 type DataClient interface {
 	UpdateData(ctx context.Context, userID string, entry models.ClientData) error
 	ListData(ctx context.Context, userID string) ([]models.DataEntry, error)
@@ -36,11 +41,13 @@ type DataClient interface {
 	CreateDeleteOperation(userID, dataID string) *data.DataOperation
 }
 
+// Service implements synchronization business logic
 type Service struct {
 	conflictRepo Repo
 	dataClient   DataClient
 }
 
+// New creates a new Service instance with dependencies
 func New(conflictRepo Repo, dataClient DataClient) *Service {
 	return &Service{
 		conflictRepo: conflictRepo,
@@ -48,6 +55,8 @@ func New(conflictRepo Repo, dataClient DataClient) *Service {
 	}
 }
 
+// SyncData synchronizes client data with server and detects conflicts
+// Returns list of detected conflicts or error if synchronization fails
 func (s *Service) SyncData(ctx context.Context, userID string, clientData []models.ClientData) ([]models.Conflict, error) {
 	log.Info().Msg("Starting SyncData")
 
@@ -71,14 +80,16 @@ func (s *Service) SyncData(ctx context.Context, userID string, clientData []mode
 		switch clientEntry.Operation {
 		case models.Delete:
 			if exists {
-				operations = append(operations, s.dataClient.CreateDeleteOperation(userID, clientEntry.DataID))
+				op := s.dataClient.CreateDeleteOperation(userID, clientEntry.DataID)
+				operations = append(operations, op)
 			}
 
 		case models.Add:
 			if exists {
 				if serverEntry.UpdatedAt.Before(clientEntry.UpdatedAt) {
 					if !bytes.Equal(serverEntry.Data, clientEntry.Data) {
-						operations = append(operations, s.dataClient.CreateUpdateOperation(userID, clientEntry))
+						op := s.dataClient.CreateUpdateOperation(userID, clientEntry)
+						operations = append(operations, op)
 					}
 				} else if !bytes.Equal(serverEntry.Data, clientEntry.Data) {
 					conflict := models.Conflict{
@@ -91,27 +102,32 @@ func (s *Service) SyncData(ctx context.Context, userID string, clientData []mode
 					conflicts = append(conflicts, conflict)
 				}
 			} else {
-				operations = append(operations, s.dataClient.CreateAddOperation(userID, clientEntry))
+				op := s.dataClient.CreateAddOperation(userID, clientEntry)
+				operations = append(operations, op)
 			}
 
 		case models.Update:
 			if exists {
 				if serverEntry.UpdatedAt.Before(clientEntry.UpdatedAt) {
 					if !bytes.Equal(serverEntry.Data, clientEntry.Data) {
-						operations = append(operations, s.dataClient.CreateUpdateOperation(userID, clientEntry))
+						op := s.dataClient.CreateUpdateOperation(userID, clientEntry)
+						operations = append(operations, op)
 					}
-				} else if !bytes.Equal(serverEntry.Data, clientEntry.Data) {
-					conflict := models.Conflict{
-						ID:         uuid.NewString(),
-						UserID:     userID,
-						DataID:     clientEntry.DataID,
-						ClientData: clientEntry.Data,
-						ServerData: serverEntry.Data,
+				} else if !serverEntry.UpdatedAt.Equal(clientEntry.UpdatedAt) {
+					if !bytes.Equal(serverEntry.Data, clientEntry.Data) {
+						conflict := models.Conflict{
+							ID:         uuid.NewString(),
+							UserID:     userID,
+							DataID:     clientEntry.DataID,
+							ClientData: clientEntry.Data,
+							ServerData: serverEntry.Data,
+						}
+						conflicts = append(conflicts, conflict)
 					}
-					conflicts = append(conflicts, conflict)
 				}
 			} else {
-				operations = append(operations, s.dataClient.CreateAddOperation(userID, clientEntry))
+				op := s.dataClient.CreateAddOperation(userID, clientEntry)
+				operations = append(operations, op)
 			}
 		}
 	}
@@ -121,30 +137,25 @@ func (s *Service) SyncData(ctx context.Context, userID string, clientData []mode
 			log.Error().Err(err).Msg("Failed to add conflicts")
 			return nil, fmt.Errorf("failed to add conflicts: %w", err)
 		}
-	} else {
-		log.Info().Msg("No conflicts detected")
 	}
 
 	if len(operations) > 0 {
-		_, err := s.dataClient.BatchProcess(ctx, userID, operations)
-		if err != nil {
+		if _, err := s.dataClient.BatchProcess(ctx, userID, operations); err != nil {
 			if len(conflicts) > 0 {
-				rollbackErr := s.rollbackInsertedConflicts(ctx, conflicts)
-				if rollbackErr != nil {
+				if rollbackErr := s.RollbackInsertedConflicts(ctx, conflicts); rollbackErr != nil {
 					log.Error().Err(rollbackErr).Msg("Failed to rollback conflicts")
 					return nil, fmt.Errorf("failed to process batch operations and rollback conflicts: %w (rollback error: %v)", err, rollbackErr)
 				}
 			}
 			return nil, fmt.Errorf("failed to process batch operations: %w", err)
 		}
-	} else {
-		log.Info().Msg("No operations to process")
 	}
 
 	log.Info().Msg("SyncData completed successfully")
 	return conflicts, nil
 }
 
+// ResolveConflict handles conflict resolution using specified strategy
 func (s *Service) ResolveConflict(ctx context.Context, conflictID string, strategy models.ResolutionStrategy) error {
 	conflict, err := s.conflictRepo.GetConflict(ctx, conflictID)
 	if err != nil {
@@ -161,7 +172,7 @@ func (s *Service) ResolveConflict(ctx context.Context, conflictID string, strate
 	case models.UseServerVersion:
 		resolvedData = conflict.ServerData
 	case models.MergeVersions:
-		resolvedData, err = mergeData(conflict.ClientData, conflict.ServerData, models.Text)
+		resolvedData, err = MergeData(conflict.ClientData, conflict.ServerData, models.Text)
 		if err != nil {
 			return fmt.Errorf("failed to merge data: %w", err)
 		}
@@ -183,11 +194,17 @@ func (s *Service) ResolveConflict(ctx context.Context, conflictID string, strate
 	return nil
 }
 
+// ListConflicts returns all unresolved conflicts for user
 func (s *Service) ListConflicts(ctx context.Context, userID string) ([]models.Conflict, error) {
-	return s.conflictRepo.GetUnresolvedConflicts(ctx, userID)
+	conflicts, err := s.conflictRepo.GetUnresolvedConflicts(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get unresolved conflicts: %w", err)
+	}
+	return conflicts, nil
 }
 
-func (s *Service) rollbackInsertedConflicts(ctx context.Context, conflicts []models.Conflict) error {
+// RollbackInsertedConflicts removes previously inserted conflicts (used for error recovery)
+func (s *Service) RollbackInsertedConflicts(ctx context.Context, conflicts []models.Conflict) error {
 	if len(conflicts) == 0 {
 		return nil
 	}
@@ -205,7 +222,8 @@ func (s *Service) rollbackInsertedConflicts(ctx context.Context, conflicts []mod
 	return nil
 }
 
-func mergeData(clientData, serverData []byte, dataType models.DataType) ([]byte, error) {
+// MergeData implements different merging strategies based on data type
+func MergeData(clientData, serverData []byte, dataType models.DataType) ([]byte, error) {
 	switch dataType {
 	case models.Text:
 		return []byte(string(clientData) + "\n" + string(serverData)), nil

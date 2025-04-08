@@ -14,9 +14,10 @@ import (
 	reflect "reflect"
 	time "time"
 
+	gomock "go.uber.org/mock/gomock"
+
 	models "github.com/GlebRadaev/password-manager/internal/auth/models"
 	pg "github.com/GlebRadaev/password-manager/internal/common/pg"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRepo is a mock of Repo interface.
@@ -251,6 +252,22 @@ func (mr *MockAuthManagerMockRecorder) GenerateOTP() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateOTP", reflect.TypeOf((*MockAuthManager)(nil).GenerateOTP))
 }
 
+// GenerateRefreshToken mocks base method.
+func (m *MockAuthManager) GenerateRefreshToken(userID string) (string, time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateRefreshToken", userID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(time.Time)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GenerateRefreshToken indicates an expected call of GenerateRefreshToken.
+func (mr *MockAuthManagerMockRecorder) GenerateRefreshToken(userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateRefreshToken", reflect.TypeOf((*MockAuthManager)(nil).GenerateRefreshToken), userID)
+}
+
 // GenerateToken mocks base method.
 func (m *MockAuthManager) GenerateToken(userID string) (string, time.Time, error) {
 	m.ctrl.T.Helper()
@@ -295,6 +312,21 @@ func (m *MockAuthManager) ValidateOTP(storedOTPCode string, storedExpiresAt time
 func (mr *MockAuthManagerMockRecorder) ValidateOTP(storedOTPCode, storedExpiresAt, providedOTPCode any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateOTP", reflect.TypeOf((*MockAuthManager)(nil).ValidateOTP), storedOTPCode, storedExpiresAt, providedOTPCode)
+}
+
+// ValidateRefreshToken mocks base method.
+func (m *MockAuthManager) ValidateRefreshToken(refreshToken string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateRefreshToken", refreshToken)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateRefreshToken indicates an expected call of ValidateRefreshToken.
+func (mr *MockAuthManagerMockRecorder) ValidateRefreshToken(refreshToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateRefreshToken", reflect.TypeOf((*MockAuthManager)(nil).ValidateRefreshToken), refreshToken)
 }
 
 // ValidateToken mocks base method.

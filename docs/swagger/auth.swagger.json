@@ -80,6 +80,38 @@
         ]
       }
     },
+    "/v1/auth/refresh-token": {
+      "post": {
+        "operationId": "AuthService_RefreshToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authRefreshTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authRefreshTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/v1/auth/register": {
       "post": {
         "operationId": "AuthService_Register",
@@ -207,7 +239,7 @@
       }
     },
     "/v1/auth/validate-token": {
-      "get": {
+      "post": {
         "operationId": "AuthService_ValidateToken",
         "responses": {
           "200": {
@@ -225,10 +257,12 @@
         },
         "parameters": [
           {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authValidateTokenRequest"
+            }
           }
         ],
         "tags": [
@@ -283,7 +317,33 @@
     "authLoginResponse": {
       "type": "object",
       "properties": {
-        "token": {
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "authRefreshTokenRequest": {
+      "type": "object",
+      "properties": {
+        "refreshToken": {
+          "type": "string"
+        }
+      }
+    },
+    "authRefreshTokenResponse": {
+      "type": "object",
+      "properties": {
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
           "type": "string"
         },
         "expiresIn": {
@@ -374,6 +434,14 @@
       "properties": {
         "valid": {
           "type": "boolean"
+        }
+      }
+    },
+    "authValidateTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
         }
       }
     },

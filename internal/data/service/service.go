@@ -1,3 +1,6 @@
+// Package service provides business logic for managing password data entries.
+// It handles operations like adding, updating, deleting, and listing data entries,
+// as well as batch processing of multiple operations in a transaction.
 package service
 
 //go:generate mockgen -destination=service_mock.go -source=service.go -package=service
@@ -6,15 +9,18 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/GlebRadaev/password-manager/internal/common/pg"
 	"github.com/GlebRadaev/password-manager/internal/data/models"
 	"github.com/GlebRadaev/password-manager/internal/data/repo"
 	"github.com/GlebRadaev/password-manager/pkg/data"
-	"github.com/google/uuid"
 )
 
+// ErrDataNotFound is returned when requested data is not found.
 var ErrDataNotFound = errors.New("data not found")
 
+// Repo defines the interface for data repository operations.
 type Repo interface {
 	AddList(ctx context.Context, entries []models.DataEntry) ([]string, error)
 	UpdateData(ctx context.Context, entry models.DataEntry) error
@@ -22,15 +28,18 @@ type Repo interface {
 	ListData(ctx context.Context, userID string) ([]models.DataEntry, error)
 }
 
+// TxManager defines the interface for transaction management.
 type TxManager interface {
 	Begin(ctx context.Context, fn pg.TransactionalFn) (err error)
 }
 
+// Service provides methods for managing password data.
 type Service struct {
 	repo      Repo
 	txManager TxManager
 }
 
+// New creates a new Service instance with the given repository and transaction manager.
 func New(repo Repo, txManager TxManager) *Service {
 	return &Service{
 		repo:      repo,
@@ -38,6 +47,7 @@ func New(repo Repo, txManager TxManager) *Service {
 	}
 }
 
+// AddData adds a new data entry and returns its ID.
 func (s *Service) AddData(ctx context.Context, entry models.DataEntry) (string, error) {
 	ids, err := s.repo.AddList(ctx, []models.DataEntry{entry})
 	if err != nil {
@@ -49,6 +59,8 @@ func (s *Service) AddData(ctx context.Context, entry models.DataEntry) (string, 
 	return ids[0], nil
 }
 
+// UpdateData updates an existing data entry.
+// Returns ErrDataNotFound if the entry doesn't exist.
 func (s *Service) UpdateData(ctx context.Context, entry models.DataEntry) error {
 	err := s.repo.UpdateData(ctx, entry)
 	if errors.Is(err, repo.ErrDataNotFound) {
@@ -57,6 +69,8 @@ func (s *Service) UpdateData(ctx context.Context, entry models.DataEntry) error 
 	return err
 }
 
+// DeleteData removes a data entry by ID for the specified user.
+// Returns ErrDataNotFound if the entry doesn't exist.
 func (s *Service) DeleteData(ctx context.Context, userID, dataID string) error {
 	err := s.repo.DeleteList(ctx, userID, []string{dataID})
 	if errors.Is(err, repo.ErrDataNotFound) {
@@ -65,12 +79,14 @@ func (s *Service) DeleteData(ctx context.Context, userID, dataID string) error {
 	return err
 }
 
+// ListData returns all data entries for the specified user.
 func (s *Service) ListData(ctx context.Context, userID string) ([]models.DataEntry, error) {
 	return s.repo.ListData(ctx, userID)
 }
 
+// BatchProcess executes multiple data operations in a single transaction.
+// Supports add, update, and delete operations.
 func (s *Service) BatchProcess(ctx context.Context, userID string, operations []*data.DataOperation) ([]*data.DataOperationResult, error) {
-	// TODO: to model structure
 	var results []*data.DataOperationResult
 	var addEntries []models.DataEntry
 	var updateEntries []models.DataEntry
@@ -164,6 +180,8 @@ func (s *Service) BatchProcess(ctx context.Context, userID string, operations []
 
 	return results, nil
 }
+
+// toModelDataType converts protobuf DataType to models.DataType.
 func toModelDataType(dt data.DataType) models.DataType {
 	switch dt {
 	case data.DataType_LOGIN_PASSWORD:
@@ -179,6 +197,7 @@ func toModelDataType(dt data.DataType) models.DataType {
 	}
 }
 
+// toModelMetadata converts protobuf Metadata to models.Metadata.
 func toModelMetadata(protoMetadata []*data.Metadata) []models.Metadata {
 	var metadata []models.Metadata
 	for _, m := range protoMetadata {

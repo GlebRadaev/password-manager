@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 package api.data;
-option go_package = "./data";
 
 import "google/api/annotations.proto";
 import "validate/validate.proto";
+
+option go_package = "./data";
 
 service DataService {
   rpc AddData(AddDataRequest) returns (AddDataResponse) {
@@ -30,14 +31,13 @@ service DataService {
 
   rpc ListData(ListDataRequest) returns (ListDataResponse) {
     option (google.api.http) = {
-      get: "/v1/data/list"
+      post: "/v1/data/list"
+      body: "*"
     };
   }
 
   rpc GetData(GetDataRequest) returns (GetDataResponse) {
-    option (google.api.http) = {
-      get: "/v1/data/get"
-    };
+    option (google.api.http) = {get: "/v1/data/get"};
   }
 
   rpc BatchProcess(BatchProcessRequest) returns (BatchProcessResponse) {
@@ -62,7 +62,14 @@ message Metadata {
 
 message AddDataRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
-  DataType type = 2 [(validate.rules).enum = {in: [0, 1, 2, 3]}];
+  DataType type = 2 [(validate.rules).enum = {
+    in: [
+      0,
+      1,
+      2,
+      3
+    ]
+  }];
   bytes data = 3 [(validate.rules).bytes.min_len = 1];
   repeated Metadata metadata = 4;
 }
@@ -119,7 +126,10 @@ message DataEntry {
 
 message BatchProcessRequest {
   string user_id = 1 [(validate.rules).string.uuid = true];
-  repeated DataOperation operations = 2 [(validate.rules).repeated.min_items = 1, (validate.rules).repeated.max_items = 100];
+  repeated DataOperation operations = 2 [
+    (validate.rules).repeated.min_items = 1,
+    (validate.rules).repeated.max_items = 100
+  ];
 }
 
 message DataOperation {

@@ -1,3 +1,5 @@
+// Package repo provides data access layer for synchronization service.
+// Handles all database operations for conflict management.
 package repo
 
 import (
@@ -12,18 +14,23 @@ import (
 	"github.com/GlebRadaev/password-manager/internal/sync/models"
 )
 
+// Common repository errors
 var (
 	ErrConflictNotFound = errors.New("conflict not found")
 )
 
+// Repository manages persistence operations for sync conflicts
 type Repository struct {
 	db pg.Database
 }
 
+// New creates a new Repository instance with database connection
 func New(db pg.Database) *Repository {
 	return &Repository{db: db}
 }
 
+// GetConflict retrieves conflict by ID
+// Returns ErrConflictNotFound if no conflict exists
 func (r *Repository) GetConflict(ctx context.Context, conflictID string) (models.Conflict, error) {
 	query := `
 		SELECT id, user_id, data_id, client_data, server_data, resolved, created_at, updated_at
@@ -45,12 +52,15 @@ func (r *Repository) GetConflict(ctx context.Context, conflictID string) (models
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.Conflict{}, ErrConflictNotFound
 		}
+
 		return models.Conflict{}, fmt.Errorf("failed to get conflict: %w", err)
 	}
 
 	return conflict, nil
 }
 
+// AddConflicts persists multiple conflicts in batch
+// Returns error if any conflict fails to be inserted
 func (r *Repository) AddConflicts(ctx context.Context, conflicts []models.Conflict) error {
 	if len(conflicts) == 0 {
 		return nil
@@ -90,6 +100,7 @@ func (r *Repository) AddConflicts(ctx context.Context, conflicts []models.Confli
 	return nil
 }
 
+// GetUnresolvedConflicts returns all active conflicts for user
 func (r *Repository) GetUnresolvedConflicts(ctx context.Context, userID string) ([]models.Conflict, error) {
 	query := `
 		SELECT id, user_id, data_id, client_data, server_data, resolved, created_at, updated_at
@@ -123,6 +134,7 @@ func (r *Repository) GetUnresolvedConflicts(ctx context.Context, userID string) 
 	return conflicts, nil
 }
 
+// ResolveConflict marks conflict as resolved
 func (r *Repository) ResolveConflict(ctx context.Context, conflictID string) error {
 	query := `
 		UPDATE sync.conflicts
@@ -137,6 +149,7 @@ func (r *Repository) ResolveConflict(ctx context.Context, conflictID string) err
 	return nil
 }
 
+// DeleteConflicts removes multiple conflicts by IDs
 func (r *Repository) DeleteConflicts(ctx context.Context, conflictIDs []string) error {
 	query := `
 		DELETE FROM sync.conflicts
