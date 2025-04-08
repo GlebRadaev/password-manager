@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package api.data;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "./data";
+
+service DataService {
+  rpc AddData(AddDataRequest) returns (AddDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/add"
+      body: "*"
+    };
+  }
+
+  rpc UpdateData(UpdateDataRequest) returns (UpdateDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/update"
+      body: "*"
+    };
+  }
+
+  rpc DeleteData(DeleteDataRequest) returns (DeleteDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/delete"
+      body: "*"
+    };
+  }
+
+  rpc ListData(ListDataRequest) returns (ListDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/list"
+      body: "*"
+    };
+  }
+
+  rpc GetData(GetDataRequest) returns (GetDataResponse) {
+    option (google.api.http) = {get: "/v1/data/get"};
+  }
+
+  rpc BatchProcess(BatchProcessRequest) returns (BatchProcessResponse) {
+    option (google.api.http) = {
+      post: "/v1/data/batch"
+      body: "*"
+    };
+  }
+}
+
+enum DataType {
+  LOGIN_PASSWORD = 0;
+  TEXT = 1;
+  BINARY = 2;
+  CARD = 3;
+}
+
+message Metadata {
+  string key = 1;
+  string value = 2;
+}
+
+message AddDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  DataType type = 2 [(validate.rules).enum = {
+    in: [
+      0,
+      1,
+      2,
+      3
+    ]
+  }];
+  bytes data = 3 [(validate.rules).bytes.min_len = 1];
+  repeated Metadata metadata = 4;
+}
+
+message AddDataResponse {
+  string data_id = 1;
+}
+
+message UpdateDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+  bytes data = 3 [(validate.rules).bytes.min_len = 1];
+  repeated Metadata metadata = 4;
+}
+
+message UpdateDataResponse {
+  string message = 1;
+}
+
+message DeleteDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message DeleteDataResponse {
+  string message = 1;
+}
+
+message ListDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message ListDataResponse {
+  repeated DataEntry entries = 1;
+}
+
+message GetDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string data_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message GetDataResponse {
+  DataEntry entry = 1;
+}
+
+message DataEntry {
+  string data_id = 1;
+  DataType type = 2;
+  bytes data = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  repeated Metadata metadata = 6;
+}
+
+message BatchProcessRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  repeated DataOperation operations = 2 [
+    (validate.rules).repeated.min_items = 1,
+    (validate.rules).repeated.max_items = 100
+  ];
+}
+
+message DataOperation {
+  oneof operation {
+    AddDataRequest add = 1;
+    UpdateDataRequest update = 2;
+    DeleteDataRequest delete = 3;
+  }
+}
+
+message BatchProcessResponse {
+  repeated DataOperationResult results = 1;
+}
+
+message DataOperationResult {
+  oneof result {
+    AddDataResponse add = 1;
+    UpdateDataResponse update = 2;
+    DeleteDataResponse delete = 3;
+  }
+}
