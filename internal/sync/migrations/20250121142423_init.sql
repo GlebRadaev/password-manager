@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE SCHEMA IF NOT EXISTS sync;
+CREATE SCHEMA sync;
 
-CREATE TABLE IF NOT EXISTS sync.conflicts (
+CREATE TABLE sync.conflicts (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     data_id UUID NOT NULL,
@@ -14,14 +14,14 @@ CREATE TABLE IF NOT EXISTS sync.conflicts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_id ON sync.conflicts (user_id);
+CREATE INDEX idx_user_id ON sync.conflicts (user_id);
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 
-DROP TABLE IF EXISTS sync.conflicts;
-DROP SCHEMA IF EXISTS sync;
+DROP TABLE sync.conflicts;
+DROP SCHEMA sync;
 
 -- +goose StatementEnd

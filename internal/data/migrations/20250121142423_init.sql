@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE SCHEMA IF NOT EXISTS data;
+CREATE SCHEMA data;
 
-CREATE TABLE IF NOT EXISTS data.entries (
+CREATE TABLE data.entries (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     type INT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS data.entries (
 -- +goose Down
 -- +goose StatementBegin
 
-DROP TABLE IF EXISTS data.data;
-DROP SCHEMA IF EXISTS data;
+DROP TABLE data.data;
+DROP SCHEMA data;
 
 -- +goose StatementEnd
