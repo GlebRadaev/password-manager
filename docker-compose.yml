@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./local/init_db.sql:/docker-entrypoint-initdb.d/db.sql
+    mem_limit: 1024m
+    healthcheck:
+      test: bash -c '((echo >/dev/tcp/localhost/5432) &>/dev/null)'
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    networks:
+      - common
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+
+  gateway:
+    image: manager:latest
+    container_name: gateway
+    ports:
+      - 8079:8079
+    entrypoint: ./gateway
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+  auth:
+    image: manager:latest
+    container_name: auth
+    ports:
+      - 8080:8080
+      - 9090:9090
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ./auth
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+  data:
+    image: manager:latest
+    container_name: data
+    ports:
+      - 8081:8081
+      - 9091:9091
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ./data
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+  sync:
+    image: manager:latest
+    container_name: sync
+    ports:
+      - 8082:8082
+      - 9092:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ./sync
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+networks:
+  common:
+    driver: bridge
+
+volumes:
+  postgres:
+    driver: local

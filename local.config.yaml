@@ -1,0 +1,62 @@
+env: dev
+log_level: debug
+
+gateway:
+  httpPort: :8079
+  grpcPort: :9089
+  authSvc:
+    endpoint: auth:9090
+  dataSvc:
+    endpoint: data:9091
+  syncSvc:
+    endpoint: sync:9092
+
+auth:
+  httpPort: :8080
+  grpcPort: :9090
+  secretKey: "my-secret-key"
+  tokenExpiration: 24h
+  otpExpiration: 5m
+  pgConfig:
+    user: postgres
+    password: postgres
+    dbName: auth
+    maxOpenConns: 10
+    maxIdleConns: 5
+    minConns: 1
+    maxConnLifetime: 30s
+    timeout: 5s
+    host: postgres
+    port: 5432
+  
+data:
+  httpPort: :8081
+  grpcPort: :9091
+  pgConfig:
+    user: postgres
+    password: postgres
+    dbName: data
+    maxOpenConns: 10
+    maxIdleConns: 5
+    minConns: 1
+    maxConnLifetime: 30s
+    timeout: 5s
+    host: postgres
+    port: 5432
+
+sync:
+  httpPort: :8082
+  grpcPort: :9092
+  dataSvc:
+    endpoint: data:9091
+  pgConfig:
+    user: postgres
+    password: postgres
+    dbName: sync
+    maxOpenConns: 10
+    maxIdleConns: 5
+    minConns: 1
+    maxConnLifetime: 30s
+    timeout: 5s
+    host: postgres
+    port: 5432

@@ -1,0 +1,19 @@
+FROM golang:1.23-alpine3.21 as builder
+
+WORKDIR /src
+COPY . /src
+
+ENV GOCACHE=/root/.cache/go-build
+
+RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/auth ./cmd/auth
+RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/data ./cmd/data
+RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/gateway ./cmd/gateway
+RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/sync ./cmd/sync
+
+FROM alpine:3.21.3
+
+WORKDIR /app
+COPY --from=builder --chown=app:app /build/* .
+COPY --from=builder --chown=app:app /src/local.config.yaml .
+COPY --from=builder --chown=app:app /src/docs/swagger /swagger
+
