@@ -9,7 +9,8 @@ import (
 	"github.com/GlebRadaev/password-manager/client/services"
 )
 
-var syncService = services.NewSyncService()
+// syncService is the shared sync service instance
+var syncService SyncServiceInterface = services.NewSyncService()
 
 // syncCmd represents the sync command for synchronizing data with the server
 var syncCmd = &cobra.Command{

@@ -11,20 +11,37 @@ import (
 	"github.com/GlebRadaev/password-manager/internal/auth/application"
 )
 
+var (
+	// appCreator creates a new application instance. Can be replaced in tests.
+	appCreator = func() AppInterface {
+		return application.New()
+	}
+	// logFatal logs a fatal error and exits the program. Can be replaced in tests.
+	logFatal = log.Fatalf
+	// signalNotify sets up signal notification. Can be replaced in tests.
+	signalNotify = signal.NotifyContext
+)
+
+// AppInterface defines the contract for the application instance.
+type AppInterface interface {
+	// Start initializes and starts the application components.
+	Start(ctx context.Context) error
+	// Wait blocks until application shutdown is complete.
+	Wait(ctx context.Context, cancel context.CancelFunc) error
+}
+
 // main is the entry point of the application.
 // It sets up signal handling for graceful shutdown and starts the application.
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signalNotify(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	app := application.New()
-	err := app.Start(ctx)
-	if err != nil {
-		log.Fatalf("Can't start application: %s", err)
+	app := appCreator()
+	if err := app.Start(ctx); err != nil {
+		logFatal("Can't start application: %s", err)
 	}
 
-	err = app.Wait(ctx, cancel)
-	if err != nil {
-		log.Fatalf("All systems closed with errors. LastError: %s", err)
+	if err := app.Wait(ctx, cancel); err != nil {
+		logFatal("All systems closed with errors. LastError: %s", err)
 	}
 }

@@ -21,6 +21,4 @@ ignore:
   - "pkg/**"
   - "vendor/**"
   - "vendor.pb/**"
-  - "client/**"
-  - "cmd/**"
 

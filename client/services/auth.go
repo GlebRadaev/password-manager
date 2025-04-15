@@ -20,19 +20,29 @@ const (
 // AuthService provides authentication operations for the password manager client.
 // It handles user registration, login, logout, and token validation.
 type AuthService struct {
-	baseURL string
+	baseURL   string
+	client    HTTPClientInterface
+	tokenPath func() (string, error)
 }
 
 // NewAuthService creates a new AuthService instance with default base URL.
 func NewAuthService() *AuthService {
 	return &AuthService{
 		baseURL: "http://localhost:8079",
+		client:  &http.Client{},
+		tokenPath: func() (string, error) {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", fmt.Errorf("failed to get home directory: %w", err)
+			}
+			return filepath.Join(home, tokenFileName), nil
+		},
 	}
 }
 
 // Register creates a new user account with the provided credentials.
 // Returns AuthResponse containing access token on success.
-func (s *AuthService) Register(username, password, email string) (*models.AuthResponse, error) {
+func (s *AuthService) Register(username, password, email string) (*models.RegisterResponse, error) {
 	url := fmt.Sprintf("%s/v1/auth/register", s.baseURL)
 
 	reqBody := map[string]string{
@@ -46,7 +56,7 @@ func (s *AuthService) Register(username, password, email string) (*models.AuthRe
 		return nil, err
 	}
 
-	var result models.AuthResponse
+	var result models.RegisterResponse
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -113,8 +123,8 @@ func (s *AuthService) ValidateToken() (bool, string, error) {
 	}
 
 	var result struct {
-		Valid  bool
-		UserID string
+		Valid  bool   `json:"valid"`
+		UserID string `json:"user_id"`
 	}
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return false, "", fmt.Errorf("failed to decode response: %w", err)
@@ -155,15 +165,6 @@ func (s *AuthService) clearToken() error {
 	return os.Remove(path)
 }
 
-// tokenPath returns the full path to the token file in the user's home directory.
-func (s *AuthService) tokenPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
-	}
-	return filepath.Join(home, tokenFileName), nil
-}
-
 // doRequest performs an HTTP request with JSON body and handles the response.
 func (s *AuthService) doRequest(method, url string, body interface{}) ([]byte, error) {
 	jsonBody, err := json.Marshal(body)
@@ -177,8 +178,7 @@ func (s *AuthService) doRequest(method, url string, body interface{}) ([]byte, e
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}

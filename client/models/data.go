@@ -54,9 +54,15 @@ type DataEntry struct {
 
 // AuthResponse contains authentication tokens from the server
 type AuthResponse struct {
-	AccessToken  string // Bearer token for API access
-	RefreshToken string // Token for obtaining new access tokens
-	ExpiresIn    string // Token expiration duration
+	AccessToken  string `json:"access_token"`  // Bearer token for API access
+	RefreshToken string `json:"refresh_token"` // Token for obtaining new access tokens
+	ExpiresIn    string `json:"expires_in"`    // Token expiration duration
+}
+
+// RegisterResponse contains the result of a successful user registration.
+type RegisterResponse struct {
+	UserID  string `json:"user_id"` // UserID is the unique identifier registered user
+	Message string `json:"message"` // Message contains human-readable information
 }
 
 // ClientData represents data structure for client-server communication

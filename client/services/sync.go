@@ -15,7 +15,8 @@ import (
 // It manages data sync operations and conflict resolution.
 type SyncService struct {
 	baseURL string
-	storage *storage.LocalStorage
+	storage StorageInterface
+	client  HTTPClientInterface
 }
 
 // NewSyncService creates a new SyncService instance with default configuration.
@@ -23,13 +24,14 @@ func NewSyncService() *SyncService {
 	return &SyncService{
 		baseURL: "http://localhost:8079",
 		storage: storage.NewLocalStorage(),
+		client:  &http.Client{},
 	}
 }
 
 // Sync performs synchronization of pending entries with the remote server.
 // Returns SyncResponse containing sync results and any conflicts.
 func (s *SyncService) Sync() (*models.SyncResponse, error) {
-	token, err := storage.GetAuthToken()
+	token, err := s.storage.GetAuthToken()
 	if err != nil {
 		return nil, fmt.Errorf("authentication required: %v", err)
 	}
@@ -71,8 +73,7 @@ func (s *SyncService) Sync() (*models.SyncResponse, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
@@ -111,7 +112,7 @@ func (s *SyncService) Sync() (*models.SyncResponse, error) {
 // Resolve handles conflict resolution using specified strategy.
 // Returns ResolutionResponse with resolution results.
 func (s *SyncService) Resolve(conflictID, strategy string) (*models.ResolutionResponse, error) {
-	token, err := storage.GetAuthToken()
+	token, err := s.storage.GetAuthToken()
 	if err != nil {
 		return nil, fmt.Errorf("authentication required: %v", err)
 	}
@@ -134,8 +135,7 @@ func (s *SyncService) Resolve(conflictID, strategy string) (*models.ResolutionRe
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
@@ -182,8 +182,7 @@ func (s *SyncService) validateTokenAndGetUserID(token string) (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("validation request failed: %v", err)
 	}

@@ -12,7 +12,8 @@ import (
 	"github.com/GlebRadaev/password-manager/client/services"
 )
 
-var dataService = services.NewDataService()
+// dataService is the shared data service instance
+var dataService DataServiceInterface = services.NewDataService()
 
 // addCmd represents the command to add a new data entry
 var addCmd = &cobra.Command{

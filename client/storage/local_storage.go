@@ -232,7 +232,7 @@ func (s *LocalStorage) getAllEntries() ([]*models.DataEntry, error) {
 
 // GetAuthToken retrieves stored authentication token from ~/.pm_token
 // Returns empty string if token file doesn't exist
-func GetAuthToken() (string, error) {
+func (s *LocalStorage) GetAuthToken() (string, error) {
 	home, _ := os.UserHomeDir()
 	tokenPath := filepath.Join(home, ".pm_token")
 

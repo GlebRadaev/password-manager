@@ -77,7 +77,6 @@ func TestApplication_Start_Success(t *testing.T) {
 	app := New()
 	app.ConfigProvider = mockProvider
 
-	// Используем cancel для остановки сервера
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

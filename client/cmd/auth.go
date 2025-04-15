@@ -11,7 +11,7 @@ import (
 )
 
 // authService is the shared authentication service instance
-var authService = services.NewAuthService()
+var authService AuthServiceInterface = services.NewAuthService()
 
 // registerCmd handles user registration
 var registerCmd = &cobra.Command{
