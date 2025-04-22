@@ -1,0 +1,303 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "sync.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "SyncService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/sync/conflicts": {
+      "get": {
+        "operationId": "SyncService_ListConflicts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/syncListConflictsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SyncService"
+        ]
+      }
+    },
+    "/v1/sync/data": {
+      "post": {
+        "operationId": "SyncService_SyncData",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/syncSyncDataResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/syncSyncDataRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SyncService"
+        ]
+      }
+    },
+    "/v1/sync/resolve-conflict": {
+      "post": {
+        "operationId": "SyncService_ResolveConflict",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/syncResolveConflictResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/syncResolveConflictRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SyncService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "syncClientData": {
+      "type": "object",
+      "properties": {
+        "dataId": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/syncDataType"
+        },
+        "data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "operation": {
+          "$ref": "#/definitions/syncOperation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/syncMetadata"
+          }
+        }
+      }
+    },
+    "syncConflict": {
+      "type": "object",
+      "properties": {
+        "conflictId": {
+          "type": "string"
+        },
+        "dataId": {
+          "type": "string"
+        },
+        "clientData": {
+          "type": "string",
+          "format": "byte"
+        },
+        "serverData": {
+          "type": "string",
+          "format": "byte"
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "syncDataType": {
+      "type": "string",
+      "enum": [
+        "LOGIN_PASSWORD",
+        "TEXT",
+        "BINARY",
+        "CARD"
+      ],
+      "default": "LOGIN_PASSWORD"
+    },
+    "syncListConflictsResponse": {
+      "type": "object",
+      "properties": {
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/syncConflict"
+          }
+        }
+      }
+    },
+    "syncMetadata": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "syncOperation": {
+      "type": "string",
+      "enum": [
+        "ADD",
+        "UPDATE",
+        "DELETE"
+      ],
+      "default": "ADD"
+    },
+    "syncResolutionStrategy": {
+      "type": "string",
+      "enum": [
+        "USE_CLIENT_VERSION",
+        "USE_SERVER_VERSION",
+        "MERGE_VERSIONS"
+      ],
+      "default": "USE_CLIENT_VERSION"
+    },
+    "syncResolveConflictRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "conflictId": {
+          "type": "string"
+        },
+        "strategy": {
+          "$ref": "#/definitions/syncResolutionStrategy"
+        }
+      }
+    },
+    "syncResolveConflictResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "syncSyncDataRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "clientData": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/syncClientData"
+          }
+        }
+      }
+    },
+    "syncSyncDataResponse": {
+      "type": "object",
+      "properties": {
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/syncConflict"
+          }
+        }
+      }
+    }
+  }
+}

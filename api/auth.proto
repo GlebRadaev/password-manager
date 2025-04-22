@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package api.auth;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "./auth";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/register"
+      body: "*"
+    };
+  }
+
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/login"
+      body: "*"
+    };
+  }
+
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/validate-token"
+      body: "*"
+    };
+  }
+
+  rpc GenerateOTP(GenerateOTPRequest) returns (GenerateOTPResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/generate-otp"
+      body: "*"
+    };
+  }
+
+  rpc ValidateOTP(ValidateOTPRequest) returns (ValidateOTPResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/validate-otp"
+      body: "*"
+    };
+  }
+
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
+    option (google.api.http) = {get: "/v1/auth/sessions"};
+  }
+
+  rpc TerminateSession(TerminateSessionRequest) returns (TerminateSessionResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/terminate-session"
+      body: "*"
+    };
+  }
+
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/refresh-token"
+      body: "*"
+    };
+  }
+}
+
+message RegisterRequest {
+  string username = 1 [(validate.rules).string = {
+    min_len: 3
+    max_len: 20
+    pattern: "^[a-zA-Z0-9_]+$"
+  }];
+  string password = 2 [(validate.rules).string = {
+    min_len: 8
+    max_len: 50
+  }];
+  string email = 3 [(validate.rules).string.email = true];
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string message = 2;
+}
+
+message LoginRequest {
+  string username = 1 [(validate.rules).string = {
+    min_len: 3
+    max_len: 20
+  }];
+  string password = 2 [(validate.rules).string = {
+    min_len: 8
+    max_len: 50
+  }];
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+}
+
+message ValidateTokenRequest {
+  string token = 1 [(validate.rules).string.min_len = 10];
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+}
+
+message GenerateOTPRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string device_id = 2;
+}
+
+message GenerateOTPResponse {
+  string otp_code = 1;
+}
+
+message ValidateOTPRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string otp_code = 2 [(validate.rules).string.len = 6];
+  string device_id = 3;
+}
+
+message ValidateOTPResponse {
+  bool valid = 1;
+}
+
+message ListSessionsRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message TerminateSessionRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string session_id = 2 [(validate.rules).string.uuid = true];
+}
+
+message TerminateSessionResponse {
+  string message = 1;
+}
+
+message Session {
+  string session_id = 1;
+  string device_info = 2;
+  int64 created_at = 3;
+  int64 expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1 [(validate.rules).string.min_len = 10];
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+}

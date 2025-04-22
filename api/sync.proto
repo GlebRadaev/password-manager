@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package api.sync;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "./sync";
+
+service SyncService {
+  rpc SyncData(SyncDataRequest) returns (SyncDataResponse) {
+    option (google.api.http) = {
+      post: "/v1/sync/data"
+      body: "*"
+    };
+  }
+
+  rpc ResolveConflict(ResolveConflictRequest) returns (ResolveConflictResponse) {
+    option (google.api.http) = {
+      post: "/v1/sync/resolve-conflict"
+      body: "*"
+    };
+  }
+
+  rpc ListConflicts(ListConflictsRequest) returns (ListConflictsResponse) {
+    option (google.api.http) = {get: "/v1/sync/conflicts"};
+  }
+}
+
+message SyncDataRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  repeated ClientData client_data = 2;
+}
+
+message SyncDataResponse {
+  repeated Conflict conflicts = 1;
+}
+
+message ResolveConflictRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+  string conflict_id = 2 [(validate.rules).string.uuid = true];
+  ResolutionStrategy strategy = 3;
+}
+
+message ResolveConflictResponse {
+  string message = 1;
+}
+
+message ListConflictsRequest {
+  string user_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message ListConflictsResponse {
+  repeated Conflict conflicts = 1;
+}
+
+message Conflict {
+  string conflict_id = 1;
+  string data_id = 2;
+  bytes client_data = 3;
+  bytes server_data = 4;
+  bool resolved = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message ClientData {
+  string data_id = 1;
+  DataType type = 2;
+  bytes data = 3;
+  Operation operation = 4;
+  int64 updated_at = 5;
+  repeated Metadata metadata = 6;
+}
+
+enum DataType {
+  LOGIN_PASSWORD = 0;
+  TEXT = 1;
+  BINARY = 2;
+  CARD = 3;
+}
+
+enum ResolutionStrategy {
+  USE_CLIENT_VERSION = 0;
+  USE_SERVER_VERSION = 1;
+  MERGE_VERSIONS = 2;
+}
+
+enum Operation {
+  ADD = 0;
+  UPDATE = 1;
+  DELETE = 2;
+}
+
+message Metadata {
+  string key = 1;
+  string value = 2;
+}

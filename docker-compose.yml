@@ -1,0 +1,86 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports: ["5432:5432"]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./local/init_db.sql:/docker-entrypoint-initdb.d/db.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    networks:
+      - common
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE: gateway
+    ports: ["8079:8079"]
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE: auth
+    ports: ["8080:8080", "9090:9090"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+  data:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE: data
+    ports: ["8081:8081", "9091:9091"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+  sync:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE: sync
+    ports: ["8082:8082", "9092:9092"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: local
+    networks:
+      - common
+
+networks:
+  common:
+    driver: bridge
+
+volumes:
+  postgres:
+    driver: local
