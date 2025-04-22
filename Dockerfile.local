@@ -1,19 +1,36 @@
+ARG SERVICE=gateway
+
 FROM golang:1.23-alpine3.21 as builder
 
+ARG SERVICE
 WORKDIR /src
-COPY . /src
+COPY . .
 
-ENV GOCACHE=/root/.cache/go-build
+ENV GOCACHE=/root/.cache/go-build \
+    GOOS=linux \
+    CGO_ENABLED=0
 
-RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/auth ./cmd/auth
-RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/data ./cmd/data
-RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/gateway ./cmd/gateway
-RUN --mount=type=cache,target="/root/.cache/go-build" GOOS=linux go build -o /build/sync ./cmd/sync
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go build -ldflags="-s -w" -o /app/bin ./cmd/${SERVICE}
 
 FROM alpine:3.21.3
 
+RUN addgroup -S app && \
+    adduser -S app -G app && \
+    mkdir -p /app/config /swagger && \
+    chown -R app:app /app /swagger
+
 WORKDIR /app
-COPY --from=builder --chown=app:app /build/* .
-COPY --from=builder --chown=app:app /src/local.config.yaml .
+
+COPY --from=builder --chown=app:app /app/bin ./bin
+COPY --from=builder --chown=app:app /src/local.config.yaml /app/local.config
 COPY --from=builder --chown=app:app /src/docs/swagger /swagger
 
+RUN apk --no-cache add tzdata && \
+    cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
+    echo "Europe/Moscow" > /etc/timezone && \
+    apk del tzdata
+
+USER app
+
+CMD ["./bin"]

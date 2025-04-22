@@ -4,6 +4,8 @@ SERVICES=$(shell ls -1 api | grep \.proto | sed s/\.proto//)
 PROTO_FILE := ./
 PROTOC_VER = 3.12.4
 OS = linux
+GOEXE = $(shell go env GOEXE)
+
 ifeq ($(shell uname -s), Darwin)
     OS = osx
 endif
@@ -25,12 +27,10 @@ build-all:
 	@for platform in $(PLATFORMS); do \
 		GOOS=$${platform%/*}; \
 		GOARCH=$${platform#*/}; \
-		OUTPUT=$(BUILD_DIR)/$(BINARY_NAME)-$$GOOS-$$GOARCH; \
-		if [ $$GOOS = "windows" ]; then OUTPUT=$$OUTPUT.exe; fi; \
+		OUTPUT=$(BUILD_DIR)/$(BINARY_NAME)-$$GOOS-$$GOARCH$(GOEXE); \
 		echo "Building $$GOOS/$$GOARCH -> $$OUTPUT"; \
 		GOOS=$$GOOS GOARCH=$$GOARCH go build $(LDFLAGS) -o $$OUTPUT ./$(CLIENT_DIR); \
 	done
-    
 
 .PHONY: lint
 lint:
@@ -47,10 +47,21 @@ coverage:
 	@echo "Running coverage..." 
 	go test ./... -v -parallel=32 -coverprofile=coverage.txt -covermode=atomic && go tool cover -html=coverage.txt && rm -rf coverage.txt
 
-run: 
-	$(info $(M) running)
-	docker build -t manager:latest -f Dockerfile.local .
+.PHONY: build 
+build:
+	docker compose build --no-cache
+
+.PHONY: run 
+run: build
 	docker compose up -d
+
+.PHONY: stop 
+stop:
+	docker compose down
+
+.PHONY: restart 
+restart:
+	docker compose up -d --build $(SERVICE)
 
 .PHONY: bin
 bin: $(info $(M) install bin)
