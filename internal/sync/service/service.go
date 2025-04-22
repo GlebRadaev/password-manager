@@ -144,7 +144,7 @@ func (s *Service) SyncData(ctx context.Context, userID string, clientData []mode
 			if len(conflicts) > 0 {
 				if rollbackErr := s.RollbackInsertedConflicts(ctx, conflicts); rollbackErr != nil {
 					log.Error().Err(rollbackErr).Msg("Failed to rollback conflicts")
-					return nil, fmt.Errorf("failed to process batch operations and rollback conflicts: %w (rollback error: %v)", err, rollbackErr)
+					return nil, fmt.Errorf("failed to process batch operations and rollback conflicts: %w (rollback error: %w)", err, rollbackErr)
 				}
 			}
 			return nil, fmt.Errorf("failed to process batch operations: %w", err)

@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -667,7 +668,7 @@ func TestAuthService_doRequest(t *testing.T) {
 				client: httpClientMock,
 			}
 
-			result, err := service.doRequest(tt.method, tt.url, tt.body)
+			result, err := service.doRequest(context.Background(), tt.method, tt.url, tt.body)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)

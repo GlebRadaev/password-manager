@@ -14,24 +14,30 @@ var (
 	version = "1.0.0"   // Application version
 	commit  = "none"    // Git commit hash
 	date    = "unknown" // Build date
+	goVer   = runtime.Version()
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pm",
-	Short: "Password Manager CLI",
-	Long:  "GophKeeper - client-server password manager with local storage and sync capabilities",
-	Version: fmt.Sprintf("%s\nCommit: %s\nBuild date: %s\nGo version: %s",
+	Use:     "pm",
+	Short:   "Password Manager CLI",
+	Long:    "GophKeeper - client-server password manager with local storage and sync capabilities",
+	Version: buildVersionString(),
+}
+
+// buildVersionString constructs the version information string
+func buildVersionString() string {
+	return fmt.Sprintf("%s\nCommit: %s\nBuild date: %s\nGo version: %s",
 		version,
 		commit,
 		date,
-		runtime.Version()),
+		goVer)
 }
 
 // Execute runs the root command and handles errors
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		rootCmd.PrintErrln(err)
 		os.Exit(1)
 	}
 }

@@ -138,7 +138,7 @@ func TestDataService_Get(t *testing.T) {
 		setupMock      func(*MockStorageInterface)
 		id             string
 		expectedResult *models.DataEntry
-		expectedError  error
+		expectedError  string
 	}{
 		{
 			name: "successful get",
@@ -154,7 +154,7 @@ func TestDataService_Get(t *testing.T) {
 				storage.EXPECT().Get("missing").Return(nil, errors.New("not found"))
 			},
 			id:            "missing",
-			expectedError: errors.New("not found"),
+			expectedError: "failed to get entry missing: not found",
 		},
 	}
 
@@ -169,9 +169,9 @@ func TestDataService_Get(t *testing.T) {
 
 			result, err := service.Get(tt.id)
 
-			if tt.expectedError != nil {
+			if tt.expectedError != "" {
 				require.Error(t, err)
-				assert.Equal(t, tt.expectedError, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
 				return
 			}
 
@@ -267,7 +267,7 @@ func TestDataService_SyncWithServer(t *testing.T) {
 			setupMocks: func(storage *MockStorageInterface, client *MockHTTPClientInterface) {
 				storage.EXPECT().GetAll().Return(nil, errors.New("storage error"))
 			},
-			expectedError: "storage error",
+			expectedError: "failed to get entries for sync: storage error",
 		},
 		{
 			name: "failed to get auth token",
@@ -284,7 +284,7 @@ func TestDataService_SyncWithServer(t *testing.T) {
 				storage.EXPECT().GetAuthToken().Return("valid-token", nil)
 				client.EXPECT().Do(gomock.Any()).Return(nil, errors.New("http error"))
 			},
-			expectedError: "request failed: http error",
+			expectedError: "sync request failed: request failed: http error",
 		},
 		{
 			name: "failed to read response",
@@ -298,7 +298,7 @@ func TestDataService_SyncWithServer(t *testing.T) {
 				}
 				client.EXPECT().Do(gomock.Any()).Return(resp, nil)
 			},
-			expectedError: "failed to read response: simulated read error",
+			expectedError: "sync request failed: failed to read response: simulated read error",
 		},
 		{
 			name: "server error with message",
@@ -312,7 +312,7 @@ func TestDataService_SyncWithServer(t *testing.T) {
 				}
 				client.EXPECT().Do(gomock.Any()).Return(resp, nil)
 			},
-			expectedError: "server error: invalid data",
+			expectedError: "server error: invalid data (status 400)",
 		},
 		{
 			name: "unexpected status code",
@@ -340,7 +340,7 @@ func TestDataService_SyncWithServer(t *testing.T) {
 				}
 				client.EXPECT().Do(gomock.Any()).Return(resp, nil)
 			},
-			expectedError: "failed to decode response: invalid character",
+			expectedError: "failed to decode sync response: invalid character",
 		},
 		{
 			name: "sync failed",
@@ -354,7 +354,7 @@ func TestDataService_SyncWithServer(t *testing.T) {
 				}
 				client.EXPECT().Do(gomock.Any()).Return(resp, nil)
 			},
-			expectedError: "sync failed",
+			expectedError: "sync failed: server returned unsuccessful status",
 		},
 	}
 

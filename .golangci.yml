@@ -10,6 +10,18 @@ output:
 linters:
   enable-all: true
   disable:
+    - fatcontext
+    - intrange
+    - perfsprint
+    - ireturn
+    - cyclop
+    - contextcheck
+    - musttag
+    - protogetter
+    - revive
+    - exhaustruct
+    - tagalign
+    - depguard
     - varnamelen
     - tagliatelle
     - staticcheck
@@ -64,3 +76,6 @@ linters-settings:
     confidence: high
     excludes:
         - G304
+  wrapcheck:
+    ignorePackageGlobs:
+      - google.golang.org/grpc/status

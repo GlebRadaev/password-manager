@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 const (
 	tokenFileMode = 0600 // -rw-------
 	tokenFileName = ".pm_token"
+	authBasePath  = "/v1/auth/"
 )
 
 // AuthService provides authentication operations for the password manager client.
@@ -29,7 +31,9 @@ type AuthService struct {
 func NewAuthService() *AuthService {
 	return &AuthService{
 		baseURL: "http://localhost:8079",
-		client:  &http.Client{},
+		client: &http.Client{
+			Timeout: timeOut,
+		},
 		tokenPath: func() (string, error) {
 			home, err := os.UserHomeDir()
 			if err != nil {
@@ -43,7 +47,10 @@ func NewAuthService() *AuthService {
 // Register creates a new user account with the provided credentials.
 // Returns AuthResponse containing access token on success.
 func (s *AuthService) Register(username, password, email string) (*models.RegisterResponse, error) {
-	url := fmt.Sprintf("%s/v1/auth/register", s.baseURL)
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
+	defer cancel()
+
+	url := s.baseURL + authBasePath + "register"
 
 	reqBody := map[string]string{
 		"username": username,
@@ -51,9 +58,9 @@ func (s *AuthService) Register(username, password, email string) (*models.Regist
 		"email":    email,
 	}
 
-	resp, err := s.doRequest(http.MethodPost, url, reqBody)
+	resp, err := s.doRequest(ctx, http.MethodPost, url, reqBody)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("register request failed: %w", err)
 	}
 
 	var result models.RegisterResponse
@@ -67,16 +74,19 @@ func (s *AuthService) Register(username, password, email string) (*models.Regist
 // Login authenticates a user and stores the access token locally.
 // Returns AuthResponse containing access token on success.
 func (s *AuthService) Login(username, password string) (*models.AuthResponse, error) {
-	url := fmt.Sprintf("%s/v1/auth/login", s.baseURL)
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
+	defer cancel()
+
+	url := s.baseURL + authBasePath + "login"
 
 	reqBody := map[string]string{
 		"username": username,
 		"password": password,
 	}
 
-	resp, err := s.doRequest(http.MethodPost, url, reqBody)
+	resp, err := s.doRequest(ctx, http.MethodPost, url, reqBody)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("login request failed: %w", err)
 	}
 
 	var result models.AuthResponse
@@ -97,12 +107,18 @@ func (s *AuthService) Login(username, password string) (*models.AuthResponse, er
 
 // Logout removes the locally stored access token.
 func (s *AuthService) Logout() error {
-	return s.clearToken()
+	if err := s.clearToken(); err != nil {
+		return fmt.Errorf("logout failed: %w", err)
+	}
+	return nil
 }
 
 // ValidateToken checks if the stored token is valid.
 // Returns validation status and associated user ID if valid.
 func (s *AuthService) ValidateToken() (bool, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
+	defer cancel()
+
 	token, err := s.loadToken()
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -114,10 +130,10 @@ func (s *AuthService) ValidateToken() (bool, string, error) {
 		return false, "", nil
 	}
 
-	url := fmt.Sprintf("%s/v1/auth/validate-token", s.baseURL)
+	url := s.baseURL + authBasePath + "validate-token"
 	reqBody := map[string]string{"token": token}
 
-	resp, err := s.doRequest(http.MethodPost, url, reqBody)
+	resp, err := s.doRequest(ctx, http.MethodPost, url, reqBody)
 	if err != nil {
 		return false, "", fmt.Errorf("validation request failed: %w", err)
 	}
@@ -139,7 +155,10 @@ func (s *AuthService) saveToken(token string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get token path: %w", err)
 	}
-	return os.WriteFile(path, []byte(token), tokenFileMode)
+	if err := os.WriteFile(path, []byte(token), tokenFileMode); err != nil {
+		return fmt.Errorf("failed to write token file: %w", err)
+	}
+	return nil
 }
 
 // loadToken retrieves the stored access token from the user's home directory.
@@ -151,7 +170,7 @@ func (s *AuthService) loadToken() (string, error) {
 
 	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read token file: %w", err)
 	}
 	return string(data), nil
 }
@@ -162,17 +181,20 @@ func (s *AuthService) clearToken() error {
 	if err != nil {
 		return fmt.Errorf("failed to get token path: %w", err)
 	}
-	return os.Remove(path)
+	if err := os.Remove(path); err != nil {
+		return fmt.Errorf("failed to remove token file: %w", err)
+	}
+	return nil
 }
 
 // doRequest performs an HTTP request with JSON body and handles the response.
-func (s *AuthService) doRequest(method, url string, body interface{}) ([]byte, error) {
+func (s *AuthService) doRequest(ctx context.Context, method, url string, body interface{}) ([]byte, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

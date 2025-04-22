@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -415,7 +416,7 @@ func TestValidateTokenAndGetUserID(t *testing.T) {
 				client:  httpClientMock,
 			}
 
-			userID, err := service.validateTokenAndGetUserID(tt.token)
+			userID, err := service.validateTokenAndGetUserID(context.Background(), tt.token)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)

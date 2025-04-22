@@ -11,6 +11,12 @@ import (
 	"github.com/GlebRadaev/password-manager/pkg/auth"
 )
 
+// Error parsing constants
+const (
+	ErrorSplitParts   = 2
+	ErrorFieldDivider = ":"
+)
+
 // Common validation errors
 var (
 	ErrInvalidUsername = errors.New("username must be between 3 and 20 characters and contain only letters, numbers, and underscores")
@@ -115,11 +121,13 @@ func ValidateRefreshTokenRequest(req *auth.RefreshTokenRequest) error {
 
 // extractFieldFromError extracts field name from validation error string.
 func extractFieldFromError(errStr string) string {
-	parts := strings.Split(errStr, ".")
-	if len(parts) < 2 {
+	parts := strings.SplitN(errStr, ".", ErrorSplitParts)
+	if len(parts) < ErrorSplitParts {
 		return ""
 	}
-	fieldPart := parts[1]
-	fieldName := strings.Split(fieldPart, ":")[0]
-	return strings.TrimSpace(fieldName)
+	fieldParts := strings.SplitN(parts[1], ErrorFieldDivider, ErrorSplitParts)
+	if len(fieldParts) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(fieldParts[0])
 }

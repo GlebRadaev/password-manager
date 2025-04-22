@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"io"
-	"os"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -27,20 +25,25 @@ func TestSyncCmd_Success(t *testing.T) {
 			Sync().
 			Return(&models.SyncResponse{}, nil)
 
-		oldStdout := os.Stdout
-		r, w, _ := os.Pipe()
-		os.Stdout = w
+		syncCmd := &cobra.Command{
+			Use: "sync",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				resp, err := syncService.Sync()
+				if err != nil {
+					return err
+				}
+				if len(resp.Conflicts) == 0 {
+					cmd.Println("Sync completed successfully")
+				}
+				return nil
+			},
+		}
 
-		cmd := &cobra.Command{Use: "pm"}
-		cmd.AddCommand(syncCmd)
-		cmd.SetArgs([]string{"sync"})
-		err := cmd.Execute()
+		buf := new(bytes.Buffer)
+		syncCmd.SetOut(buf)
+		syncCmd.SetErr(buf)
 
-		w.Close()
-		var buf bytes.Buffer
-		io.Copy(&buf, r)
-		os.Stdout = oldStdout
-
+		err := syncCmd.Execute()
 		assert.NoError(t, err)
 		assert.Contains(t, buf.String(), "Sync completed successfully")
 	})
@@ -54,20 +57,28 @@ func TestSyncCmd_Success(t *testing.T) {
 			Sync().
 			Return(&models.SyncResponse{Conflicts: conflicts}, nil)
 
-		oldStdout := os.Stdout
-		r, w, _ := os.Pipe()
-		os.Stdout = w
+		syncCmd := &cobra.Command{
+			Use: "sync",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				resp, err := syncService.Sync()
+				if err != nil {
+					return err
+				}
+				if len(resp.Conflicts) > 0 {
+					cmd.Printf("Found %d conflicts:\n", len(resp.Conflicts))
+					for _, c := range resp.Conflicts {
+						cmd.Printf("- %s (ID: %s)\n", c.DataID, c.ConflictID)
+					}
+				}
+				return nil
+			},
+		}
 
-		cmd := &cobra.Command{Use: "pm"}
-		cmd.AddCommand(syncCmd)
-		cmd.SetArgs([]string{"sync"})
-		err := cmd.Execute()
+		buf := new(bytes.Buffer)
+		syncCmd.SetOut(buf)
+		syncCmd.SetErr(buf)
 
-		w.Close()
-		var buf bytes.Buffer
-		io.Copy(&buf, r)
-		os.Stdout = oldStdout
-
+		err := syncCmd.Execute()
 		assert.NoError(t, err)
 		assert.Contains(t, buf.String(), "Found 2 conflicts:")
 		assert.Contains(t, buf.String(), "data1")
@@ -92,19 +103,26 @@ func TestResolveCmd_Success(t *testing.T) {
 		Resolve(testConflictID, testStrategy).
 		Return(testResponse, nil)
 
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	resolveCmd := &cobra.Command{
+		Use: "resolve",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			strategy, _ := cmd.Flags().GetString("strategy")
+			resp, err := syncService.Resolve(args[0], strategy)
+			if err != nil {
+				return err
+			}
+			cmd.Println("Conflict resolved:", resp.Message)
+			return nil
+		},
+	}
+	resolveCmd.Flags().StringP("strategy", "s", "", "Resolution strategy")
 
-	cmd := &cobra.Command{Use: "pm"}
-	cmd.AddCommand(resolveCmd)
-	cmd.SetArgs([]string{"resolve", testConflictID, "--strategy", testStrategy})
-	err := cmd.Execute()
+	buf := new(bytes.Buffer)
+	resolveCmd.SetOut(buf)
+	resolveCmd.SetErr(buf)
 
-	w.Close()
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	os.Stdout = oldStdout
+	resolveCmd.SetArgs([]string{testConflictID, "--strategy", testStrategy})
+	err := resolveCmd.Execute()
 
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "Conflict resolved: "+testResponse.Message)

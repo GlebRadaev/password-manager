@@ -66,7 +66,10 @@ func (s *Service) UpdateData(ctx context.Context, entry models.DataEntry) error 
 	if errors.Is(err, repo.ErrDataNotFound) {
 		return ErrDataNotFound
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("service: update data: %w", err)
+	}
+	return nil
 }
 
 // DeleteData removes a data entry by ID for the specified user.
@@ -76,12 +79,19 @@ func (s *Service) DeleteData(ctx context.Context, userID, dataID string) error {
 	if errors.Is(err, repo.ErrDataNotFound) {
 		return ErrDataNotFound
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("service: delete data: %w", err)
+	}
+	return nil
 }
 
 // ListData returns all data entries for the specified user.
 func (s *Service) ListData(ctx context.Context, userID string) ([]models.DataEntry, error) {
-	return s.repo.ListData(ctx, userID)
+	entries, err := s.repo.ListData(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("service: list data: %w", err)
+	}
+	return entries, nil
 }
 
 // BatchProcess executes multiple data operations in a single transaction.

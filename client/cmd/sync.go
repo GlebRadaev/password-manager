@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/spf13/cobra"
 
@@ -18,20 +17,22 @@ var syncCmd = &cobra.Command{
 	Short: "Sync data with server",
 	Long: `Synchronizes local password entries with the remote server.
 Detects and reports any conflicts that need resolution.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		resp, err := syncService.Sync()
 		if err != nil {
-			log.Fatalf("Sync failed: %v", err)
+			cmd.PrintErrf("Sync failed: %v\n", err)
+			return fmt.Errorf("sync operation failed: %w", err)
 		}
 
 		if len(resp.Conflicts) > 0 {
-			fmt.Printf("Found %d conflicts:\n", len(resp.Conflicts))
+			cmd.Printf("Found %d conflicts:\n", len(resp.Conflicts))
 			for _, c := range resp.Conflicts {
-				fmt.Printf("- %s (ID: %s)\n", c.DataID, c.ConflictID)
+				cmd.Printf("- %s (ID: %s)\n", c.DataID, c.ConflictID)
 			}
 		} else {
-			fmt.Println("Sync completed successfully")
+			cmd.Println("Sync completed successfully")
 		}
+		return nil
 	},
 }
 
@@ -42,14 +43,16 @@ var resolveCmd = &cobra.Command{
 	Long: `Resolves a synchronization conflict using specified strategy.
 Available strategies: client (keep local), server (keep remote), merge (combine).`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		strategy, _ := cmd.Flags().GetString("strategy")
 
 		resp, err := syncService.Resolve(args[0], strategy)
 		if err != nil {
-			log.Fatalf("Resolve failed: %v", err)
+			cmd.PrintErrf("Resolve failed: %v\n", err)
+			return fmt.Errorf("resolve operation failed for conflict %s: %w", args[0], err)
 		}
-		fmt.Println("Conflict resolved:", resp.Message)
+		cmd.Println("Conflict resolved:", resp.Message)
+		return nil
 	},
 }
 

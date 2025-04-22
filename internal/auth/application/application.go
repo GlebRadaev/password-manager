@@ -31,6 +31,7 @@ import (
 const (
 	// AppName defines the application name used in logging and configuration
 	AppName = "auth"
+	timeOut = 5 * time.Second
 )
 
 // Application represents the main application struct that orchestrates all components
@@ -90,11 +91,11 @@ func (a *Application) Start(ctx context.Context) error {
 
 	pool, err := a.PgxPoolProvider.GetPgxpool(ctx, cfg.PgConfig)
 	if err != nil {
-		return fmt.Errorf("can't build pgx pool: %v", err)
+		return fmt.Errorf("can't build pgx pool: %w", err)
 	}
 
 	if err = a.MigrationsExecutor.Exec(pool); err != nil {
-		return fmt.Errorf("can't executing migrations: %v", err)
+		return fmt.Errorf("can't executing migrations: %w", err)
 	}
 
 	txManager := pg.NewTXManager(pool)
@@ -173,7 +174,7 @@ func (a *Application) startHTTPServer(ctx context.Context) error {
 		defer a.wg.Done()
 		<-ctx.Done()
 
-		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		sCtx, cancel := context.WithTimeout(context.Background(), timeOut)
 		defer cancel()
 
 		if err := server.Shutdown(sCtx); err != nil {

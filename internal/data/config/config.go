@@ -49,7 +49,7 @@ func New() (*Config, error) {
 
 	validate := validator.New()
 	if err := validate.Struct(&cfg); err != nil {
-		return nil, fmt.Errorf("missing required attributes %v", err)
+		return nil, fmt.Errorf("missing required attributes %w", err)
 	}
 
 	return &cfg, nil

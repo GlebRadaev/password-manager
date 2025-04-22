@@ -3,6 +3,7 @@ package app
 
 import (
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -34,6 +35,10 @@ type GRPCClient struct {
 
 // DSN generates PostgreSQL connection string
 func (c PgConfig) DSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		c.User, c.Password, c.Host, c.Port, c.DbName)
+	hostPort := net.JoinHostPort(c.Host, fmt.Sprintf("%d", c.Port))
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+		c.User,
+		c.Password,
+		hostPort,
+		c.DbName)
 }

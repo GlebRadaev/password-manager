@@ -1,15 +1,20 @@
+// Package services provides synchronization services between client and server.
 package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/GlebRadaev/password-manager/client/models"
 	"github.com/GlebRadaev/password-manager/client/storage"
 )
+
+const timeOut = 30 * time.Second
 
 // SyncService handles synchronization between local storage and remote server.
 // It manages data sync operations and conflict resolution.
@@ -24,26 +29,29 @@ func NewSyncService() *SyncService {
 	return &SyncService{
 		baseURL: "http://localhost:8079",
 		storage: storage.NewLocalStorage(),
-		client:  &http.Client{},
+		client:  &http.Client{Timeout: timeOut},
 	}
 }
 
 // Sync performs synchronization of pending entries with the remote server.
 // Returns SyncResponse containing sync results and any conflicts.
 func (s *SyncService) Sync() (*models.SyncResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
+	defer cancel()
+
 	token, err := s.storage.GetAuthToken()
 	if err != nil {
-		return nil, fmt.Errorf("authentication required: %v", err)
+		return nil, fmt.Errorf("authentication required: %w", err)
 	}
 
-	userID, err := s.validateTokenAndGetUserID(token)
+	userID, err := s.validateTokenAndGetUserID(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("token validation failed: %v", err)
+		return nil, fmt.Errorf("token validation failed: %w", err)
 	}
 
 	entries, err := s.storage.GetPendingSyncEntries()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pending sync entries: %v", err)
+		return nil, fmt.Errorf("failed to get pending sync entries: %w", err)
 	}
 
 	var clientData []*models.ClientData
@@ -56,32 +64,32 @@ func (s *SyncService) Sync() (*models.SyncResponse, error) {
 		})
 	}
 
-	url := fmt.Sprintf("%s/v1/sync/data", s.baseURL)
+	url := s.baseURL + "/v1/sync/data"
 	reqBody := map[string]interface{}{
 		"user_id":     userID,
 		"client_data": clientData,
 	}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode request body: %v", err)
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %v", err)
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %v", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -97,12 +105,12 @@ func (s *SyncService) Sync() (*models.SyncResponse, error) {
 
 	var result models.SyncResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %v", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if len(result.Conflicts) == 0 {
 		if err := s.storage.UpdateSyncStatus(entries); err != nil {
-			return nil, fmt.Errorf("failed to update sync status: %v", err)
+			return nil, fmt.Errorf("failed to update sync status: %w", err)
 		}
 	}
 
@@ -112,12 +120,15 @@ func (s *SyncService) Sync() (*models.SyncResponse, error) {
 // Resolve handles conflict resolution using specified strategy.
 // Returns ResolutionResponse with resolution results.
 func (s *SyncService) Resolve(conflictID, strategy string) (*models.ResolutionResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
+	defer cancel()
+
 	token, err := s.storage.GetAuthToken()
 	if err != nil {
-		return nil, fmt.Errorf("authentication required: %v", err)
+		return nil, fmt.Errorf("authentication required: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/v1/sync/resolve", s.baseURL)
+	url := s.baseURL + "/v1/sync/resolve"
 	reqBody := map[string]string{
 		"conflict_id": conflictID,
 		"strategy":    strategy,
@@ -125,25 +136,25 @@ func (s *SyncService) Resolve(conflictID, strategy string) (*models.ResolutionRe
 
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode request body: %v", err)
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %v", err)
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %v", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -159,7 +170,7 @@ func (s *SyncService) Resolve(conflictID, strategy string) (*models.ResolutionRe
 
 	var result models.ResolutionResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %v", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return &result, nil
@@ -167,24 +178,24 @@ func (s *SyncService) Resolve(conflictID, strategy string) (*models.ResolutionRe
 
 // validateTokenAndGetUserID checks token validity and retrieves associated user ID.
 // Returns user ID if token is valid, error otherwise.
-func (s *SyncService) validateTokenAndGetUserID(token string) (string, error) {
-	url := fmt.Sprintf("%s/v1/auth/validate-token", s.baseURL)
+func (s *SyncService) validateTokenAndGetUserID(ctx context.Context, token string) (string, error) {
+	url := s.baseURL + "/v1/auth/validate-token"
 	reqBody := map[string]string{"token": token}
 
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to encode request: %v", err)
+		return "", fmt.Errorf("failed to encode request: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %v", err)
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("validation request failed: %v", err)
+		return "", fmt.Errorf("validation request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -198,7 +209,7 @@ func (s *SyncService) validateTokenAndGetUserID(token string) (string, error) {
 		UserID string `json:"UserID"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to decode response: %v", err)
+		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if !result.Valid {

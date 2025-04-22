@@ -4,6 +4,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,6 +12,11 @@ import (
 	"sync"
 
 	"github.com/GlebRadaev/password-manager/client/models"
+)
+
+const (
+	dirMode = 0700
+	fileMod = 0600
 )
 
 // LocalStorage implements thread-safe local file storage for data entries
@@ -37,16 +43,19 @@ func (s *LocalStorage) Add(entry *models.DataEntry) error {
 	fullPath := filepath.Join(s.path, entry.ID)
 	log.Printf("Saving to: %s", fullPath)
 
-	if err := os.MkdirAll(s.path, 0700); err != nil {
-		return err
+	if err := os.MkdirAll(s.path, dirMode); err != nil {
+		return fmt.Errorf("failed to create storage directory: %w", err)
 	}
 
 	data, err := json.Marshal(entry)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal entry: %w", err)
 	}
 
-	return os.WriteFile(filepath.Join(s.path, entry.ID), data, 0600)
+	if err := os.WriteFile(filepath.Join(s.path, entry.ID), data, fileMod); err != nil {
+		return fmt.Errorf("failed to write entry file: %w", err)
+	}
+	return nil
 }
 
 // Get retrieves single data entry by ID
@@ -59,23 +68,23 @@ func (s *LocalStorage) Get(id string) (*models.DataEntry, error) {
 
 	files, err := os.ReadDir(s.path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read storage directory: %w", err)
 	}
 
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), id) {
 			data, err := os.ReadFile(filepath.Join(s.path, file.Name()))
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to read entry file: %w", err)
 			}
 			var entry models.DataEntry
 			if err := json.Unmarshal(data, &entry); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to unmarshal entry: %w", err)
 			}
 			return &entry, nil
 		}
 	}
-	return nil, os.ErrNotExist
+	return nil, fmt.Errorf("%w: entry not found", os.ErrNotExist)
 }
 
 // GetAll returns all stored data entries
@@ -89,18 +98,20 @@ func (s *LocalStorage) GetAll() ([]*models.DataEntry, error) {
 		if os.IsNotExist(err) {
 			return []*models.DataEntry{}, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to read storage directory: %w", err)
 	}
 
 	var entries []*models.DataEntry
 	for _, file := range files {
 		data, err := os.ReadFile(filepath.Join(s.path, file.Name()))
 		if err != nil {
+			log.Printf("Warning: failed to read file %s: %v", file.Name(), err)
 			continue
 		}
 
 		var entry models.DataEntry
 		if err := json.Unmarshal(data, &entry); err != nil {
+			log.Printf("Warning: failed to unmarshal file %s: %v", file.Name(), err)
 			continue
 		}
 		entries = append(entries, &entry)
@@ -115,7 +126,10 @@ func (s *LocalStorage) Delete(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return os.Remove(filepath.Join(s.path, id))
+	if err := os.Remove(filepath.Join(s.path, id)); err != nil {
+		return fmt.Errorf("failed to delete entry: %w", err)
+	}
+	return nil
 }
 
 // GetPendingSyncEntries returns entries that need synchronization
@@ -126,12 +140,12 @@ func (s *LocalStorage) GetPendingSyncEntries() ([]*models.DataEntry, error) {
 
 	allEntries, err := s.getAllEntries()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get entries: %w", err)
 	}
 
 	syncStatus, err := s.loadSyncStatus()
 	if err != nil && !os.IsNotExist(err) {
-		return nil, err
+		return nil, fmt.Errorf("failed to load sync status: %w", err)
 	}
 
 	var pendingEntries []*models.DataEntry
@@ -150,7 +164,10 @@ func (s *LocalStorage) ClearPendingSync() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return os.Remove(s.syncFilePath)
+	if err := os.Remove(s.syncFilePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to clear sync status: %w", err)
+	}
+	return nil
 }
 
 // UpdateSyncStatus updates last sync timestamps for given entries
@@ -160,14 +177,17 @@ func (s *LocalStorage) UpdateSyncStatus(entries []*models.DataEntry) error {
 
 	syncStatus, err := s.loadSyncStatus()
 	if err != nil && !os.IsNotExist(err) {
-		return err
+		return fmt.Errorf("failed to load sync status: %w", err)
 	}
 
 	for _, entry := range entries {
 		syncStatus[entry.ID] = entry.UpdatedAt
 	}
 
-	return s.saveSyncStatus(syncStatus)
+	if err := s.saveSyncStatus(syncStatus); err != nil {
+		return fmt.Errorf("failed to save sync status: %w", err)
+	}
+	return nil
 }
 
 // loadSyncStatus reads sync status from tracking file
@@ -175,12 +195,15 @@ func (s *LocalStorage) UpdateSyncStatus(entries []*models.DataEntry) error {
 func (s *LocalStorage) loadSyncStatus() (map[string]int64, error) {
 	data, err := os.ReadFile(s.syncFilePath)
 	if err != nil {
-		return make(map[string]int64), err
+		if os.IsNotExist(err) {
+			return make(map[string]int64), nil
+		}
+		return nil, fmt.Errorf("failed to read sync file: %w", err)
 	}
 
 	var status map[string]int64
 	if err := json.Unmarshal(data, &status); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal sync status: %w", err)
 	}
 	return status, nil
 }
@@ -189,14 +212,17 @@ func (s *LocalStorage) loadSyncStatus() (map[string]int64, error) {
 func (s *LocalStorage) saveSyncStatus(status map[string]int64) error {
 	data, err := json.Marshal(status)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal sync status: %w", err)
 	}
 
-	if err := os.MkdirAll(s.path, 0700); err != nil {
-		return err
+	if err := os.MkdirAll(s.path, dirMode); err != nil {
+		return fmt.Errorf("failed to create storage directory: %w", err)
 	}
 
-	return os.WriteFile(s.syncFilePath, data, 0600)
+	if err := os.WriteFile(s.syncFilePath, data, fileMod); err != nil {
+		return fmt.Errorf("failed to write sync file: %w", err)
+	}
+	return nil
 }
 
 // getAllEntries retrieves all entries from storage (internal helper)
@@ -206,7 +232,7 @@ func (s *LocalStorage) getAllEntries() ([]*models.DataEntry, error) {
 		if os.IsNotExist(err) {
 			return []*models.DataEntry{}, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to read storage directory: %w", err)
 	}
 
 	var entries []*models.DataEntry
@@ -217,11 +243,13 @@ func (s *LocalStorage) getAllEntries() ([]*models.DataEntry, error) {
 
 		data, err := os.ReadFile(filepath.Join(s.path, file.Name()))
 		if err != nil {
+			log.Printf("Warning: failed to read file %s: %v", file.Name(), err)
 			continue
 		}
 
 		var entry models.DataEntry
 		if err := json.Unmarshal(data, &entry); err != nil {
+			log.Printf("Warning: failed to unmarshal file %s: %v", file.Name(), err)
 			continue
 		}
 		entries = append(entries, &entry)
@@ -233,12 +261,15 @@ func (s *LocalStorage) getAllEntries() ([]*models.DataEntry, error) {
 // GetAuthToken retrieves stored authentication token from ~/.pm_token
 // Returns empty string if token file doesn't exist
 func (s *LocalStorage) GetAuthToken() (string, error) {
-	home, _ := os.UserHomeDir()
-	tokenPath := filepath.Join(home, ".pm_token")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
 
+	tokenPath := filepath.Join(home, ".pm_token")
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read auth token from %s: %w", tokenPath, err)
 	}
 
 	return string(data), nil

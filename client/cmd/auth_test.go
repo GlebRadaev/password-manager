@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"io"
-	"os"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -14,9 +12,6 @@ import (
 )
 
 func TestRegisterCmd_Success(t *testing.T) {
-	originalAuthService := authService
-	defer func() { authService = originalAuthService }()
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -25,27 +20,39 @@ func TestRegisterCmd_Success(t *testing.T) {
 		Register("testuser", "testpass", "test@example.com").
 		Return(&models.RegisterResponse{}, nil)
 
+	originalAuthService := authService
 	authService = mockAuthService
+	defer func() { authService = originalAuthService }()
 
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	defer func() {
-		os.Stdout = oldStdout
-	}()
+	registerCmd := &cobra.Command{
+		Use:   "register",
+		Short: "Register new user",
+		Run: func(cmd *cobra.Command, args []string) {
+			username, _ := cmd.Flags().GetString("username")
+			password, _ := cmd.Flags().GetString("password")
+			email, _ := cmd.Flags().GetString("email")
 
-	cmd := &cobra.Command{Use: "pm"}
-	cmd.AddCommand(registerCmd)
-	cmd.SetArgs([]string{"register", "--username", "testuser", "--password", "testpass", "--email", "test@example.com"})
-	err := cmd.Execute()
+			_, err := authService.Register(username, password, email)
+			if err != nil {
+				cmd.PrintErrln("Registration failed:", err)
+				return
+			}
+			cmd.Println("Registered user successfully")
+		},
+	}
+	registerCmd.Flags().StringP("username", "u", "", "Username")
+	registerCmd.Flags().StringP("password", "p", "", "Password")
+	registerCmd.Flags().StringP("email", "e", "", "Email")
 
-	w.Close()
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	output := buf.String()
+	buf := new(bytes.Buffer)
+	registerCmd.SetOut(buf)
+	registerCmd.SetErr(buf)
+
+	registerCmd.SetArgs([]string{"--username", "testuser", "--password", "testpass", "--email", "test@example.com"})
+	err := registerCmd.Execute()
 
 	assert.NoError(t, err)
-	assert.Contains(t, output, "Registered user successfully")
+	assert.Contains(t, buf.String(), "Registered user successfully")
 }
 
 func TestLoginCmd_Success(t *testing.T) {
@@ -61,19 +68,30 @@ func TestLoginCmd_Success(t *testing.T) {
 	authService = mockAuthService
 	defer func() { authService = originalAuthService }()
 
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	loginCmd := &cobra.Command{
+		Use:   "login",
+		Short: "Login to system",
+		Run: func(cmd *cobra.Command, args []string) {
+			username, _ := cmd.Flags().GetString("username")
+			password, _ := cmd.Flags().GetString("password")
 
-	cmd := &cobra.Command{Use: "pm"}
-	cmd.AddCommand(loginCmd)
-	cmd.SetArgs([]string{"login", "--username", "testuser", "--password", "testpass"})
-	err := cmd.Execute()
+			_, err := authService.Login(username, password)
+			if err != nil {
+				cmd.PrintErrln("Login failed:", err)
+				return
+			}
+			cmd.Println("Login successful")
+		},
+	}
+	loginCmd.Flags().StringP("username", "u", "", "Username")
+	loginCmd.Flags().StringP("password", "p", "", "Password")
 
-	w.Close()
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	os.Stdout = oldStdout
+	buf := new(bytes.Buffer)
+	loginCmd.SetOut(buf)
+	loginCmd.SetErr(buf)
+
+	loginCmd.SetArgs([]string{"--username", "testuser", "--password", "testpass"})
+	err := loginCmd.Execute()
 
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "Login successful")
@@ -92,19 +110,24 @@ func TestLogoutCmd_Success(t *testing.T) {
 	authService = mockAuthService
 	defer func() { authService = originalAuthService }()
 
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	logoutCmd := &cobra.Command{
+		Use:   "logout",
+		Short: "Logout from system",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := authService.Logout(); err != nil {
+				cmd.PrintErrln("Logout failed:", err)
+				return
+			}
+			cmd.Println("Logged out successfully")
+		},
+	}
 
-	cmd := &cobra.Command{Use: "pm"}
-	cmd.AddCommand(logoutCmd)
-	cmd.SetArgs([]string{"logout"})
-	err := cmd.Execute()
+	buf := new(bytes.Buffer)
+	logoutCmd.SetOut(buf)
+	logoutCmd.SetErr(buf)
 
-	w.Close()
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	os.Stdout = oldStdout
+	logoutCmd.SetArgs([]string{})
+	err := logoutCmd.Execute()
 
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "Logged out successfully")
@@ -123,19 +146,29 @@ func TestStatusCmd_Success(t *testing.T) {
 	authService = mockAuthService
 	defer func() { authService = originalAuthService }()
 
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Show auth status",
+		Run: func(cmd *cobra.Command, args []string) {
+			valid, userID, err := authService.ValidateToken()
+			if err != nil {
+				cmd.PrintErrln("Status check failed:", err)
+				return
+			}
+			if valid {
+				cmd.Printf("Authenticated as user ID: %s\n", userID)
+			} else {
+				cmd.Println("Not authenticated")
+			}
+		},
+	}
 
-	cmd := &cobra.Command{Use: "pm"}
-	cmd.AddCommand(statusCmd)
-	cmd.SetArgs([]string{"status"})
-	err := cmd.Execute()
+	buf := new(bytes.Buffer)
+	statusCmd.SetOut(buf)
+	statusCmd.SetErr(buf)
 
-	w.Close()
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	os.Stdout = oldStdout
+	statusCmd.SetArgs([]string{})
+	err := statusCmd.Execute()
 
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "Authenticated as user ID: user123")

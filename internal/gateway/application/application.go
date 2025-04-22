@@ -25,6 +25,7 @@ import (
 const (
 	// AppName defines the application name used in logging and configuration
 	AppName = "gateway"
+	timeOut = 5 * time.Second
 )
 
 // Application represents the gateway server application.
@@ -121,7 +122,7 @@ func (a *Application) startHTTPServer(ctx context.Context) error {
 		defer a.wg.Done()
 		<-ctx.Done()
 
-		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		sCtx, cancel := context.WithTimeout(context.Background(), timeOut)
 		defer cancel()
 
 		if err := server.Shutdown(sCtx); err != nil {

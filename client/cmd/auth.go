@@ -2,8 +2,7 @@
 package cmd
 
 import (
-	"fmt"
-	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -25,9 +24,10 @@ var registerCmd = &cobra.Command{
 
 		_, err := authService.Register(username, password, email)
 		if err != nil {
-			log.Fatalf("Registration failed: %v", err)
+			cmd.PrintErrln("Registration failed:", err)
+			os.Exit(1)
 		}
-		fmt.Println("Registered user successfully")
+		cmd.Println("Registered user successfully")
 	},
 }
 
@@ -42,9 +42,10 @@ var loginCmd = &cobra.Command{
 
 		_, err := authService.Login(username, password)
 		if err != nil {
-			log.Fatalf("Login failed: %v", err)
+			cmd.PrintErrln("Login failed:", err)
+			os.Exit(1)
 		}
-		fmt.Println("Login successful")
+		cmd.Println("Login successful")
 	},
 }
 
@@ -55,9 +56,10 @@ var logoutCmd = &cobra.Command{
 	Long:  "Clears the current authentication session",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := authService.Logout(); err != nil {
-			log.Fatalf("Logout failed: %v", err)
+			cmd.PrintErrln("Logout failed:", err)
+			os.Exit(1)
 		}
-		fmt.Println("Logged out successfully")
+		cmd.Println("Logged out successfully")
 	},
 }
 
@@ -69,12 +71,13 @@ var statusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		valid, userID, err := authService.ValidateToken()
 		if err != nil {
-			log.Fatalf("Status check failed: %v", err)
+			cmd.PrintErrln("Status check failed:", err)
+			os.Exit(1)
 		}
 		if valid {
-			fmt.Printf("Authenticated as user ID: %s\n", userID)
+			cmd.Printf("Authenticated as user ID: %s\n", userID)
 		} else {
-			fmt.Println("Not authenticated")
+			cmd.Println("Not authenticated")
 		}
 	},
 }

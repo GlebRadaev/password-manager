@@ -2,7 +2,6 @@
 package swagger
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,8 +13,8 @@ func RegisterSwaggerUI(mux http.Handler, appName string) http.Handler {
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/", mux)
 
-	swaggerFile := fmt.Sprintf("%s.swagger.json", strings.ToLower(appName))
-	swaggerPath := fmt.Sprintf("/swagger/%s", swaggerFile)
+	swaggerFile := strings.ToLower(appName) + ".swagger.json"
+	swaggerPath := "/swagger/" + swaggerFile
 
 	httpMux.HandleFunc(swaggerPath, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, swaggerPath)

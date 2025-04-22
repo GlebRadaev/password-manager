@@ -13,11 +13,26 @@ import (
 
 // Common validation errors
 var (
-	ErrInvalidUserID   = errors.New("user_id must be a valid UUID")
-	ErrInvalidDataID   = errors.New("data_id must be a valid UUID")
-	ErrEmptyData       = errors.New("data cannot be empty")
-	ErrInvalidDataType = errors.New("invalid data type")
-	ErrDataNotFound    = errors.New("data not found")
+	ErrInvalidUserID    = errors.New("user_id must be a valid UUID")
+	ErrInvalidDataID    = errors.New("data_id must be a valid UUID")
+	ErrEmptyData        = errors.New("data cannot be empty")
+	ErrInvalidDataType  = errors.New("invalid data type")
+	ErrDataNotFound     = errors.New("data not found")
+	ErrValidationFailed = "validation failed: %v"
+)
+
+// Operation limits
+const (
+	MinOperations = 1
+	MaxOperations = 100
+)
+
+// Error field parsing constants
+const (
+	errorSplitParts   = 2
+	errorFieldParts   = 2
+	errorFieldDivider = ":"
+	errorFieldPrefix  = "."
 )
 
 // ValidateAddDataRequest validates AddDataRequest fields
@@ -32,7 +47,7 @@ func ValidateAddDataRequest(req *data.AddDataRequest) error {
 		case "Type":
 			return status.Error(codes.InvalidArgument, ErrInvalidDataType.Error())
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+			return status.Errorf(codes.InvalidArgument, ErrValidationFailed, err)
 		}
 	}
 	return nil
@@ -50,7 +65,7 @@ func ValidateUpdateDataRequest(req *data.UpdateDataRequest) error {
 		case "Data":
 			return status.Error(codes.InvalidArgument, ErrEmptyData.Error())
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err.Error())
+			return status.Errorf(codes.InvalidArgument, ErrValidationFailed, err.Error())
 		}
 	}
 	return nil
@@ -66,7 +81,7 @@ func ValidateDeleteDataRequest(req *data.DeleteDataRequest) error {
 		case "DataId":
 			return status.Error(codes.InvalidArgument, ErrInvalidDataID.Error())
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+			return status.Errorf(codes.InvalidArgument, ErrValidationFailed, err)
 		}
 	}
 	return nil
@@ -80,7 +95,7 @@ func ValidateListDataRequest(req *data.ListDataRequest) error {
 		case "UserId":
 			return status.Error(codes.InvalidArgument, ErrInvalidUserID.Error())
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+			return status.Errorf(codes.InvalidArgument, ErrValidationFailed, err)
 		}
 	}
 	return nil
@@ -96,7 +111,7 @@ func ValidateGetDataRequest(req *data.GetDataRequest) error {
 		case "DataId":
 			return status.Error(codes.InvalidArgument, ErrInvalidDataID.Error())
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+			return status.Errorf(codes.InvalidArgument, ErrValidationFailed, err)
 		}
 	}
 	return nil
@@ -110,9 +125,14 @@ func ValidateBatchProcessRequest(req *data.BatchProcessRequest) error {
 		case "UserId":
 			return status.Error(codes.InvalidArgument, ErrInvalidUserID.Error())
 		case "Operations":
-			return status.Error(codes.InvalidArgument, "operations must contain between 1 and 100 items")
+			return status.Errorf(
+				codes.InvalidArgument,
+				"operations must contain between %d and %d items",
+				MinOperations,
+				MaxOperations,
+			)
 		default:
-			return status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+			return status.Errorf(codes.InvalidArgument, ErrValidationFailed, err)
 		}
 	}
 	return nil
@@ -120,11 +140,15 @@ func ValidateBatchProcessRequest(req *data.BatchProcessRequest) error {
 
 // extractFieldFromError extracts field name from validation error string
 func extractFieldFromError(errStr string) string {
-	parts := strings.Split(errStr, ".")
-	if len(parts) < 2 {
+	parts := strings.SplitN(errStr, errorFieldPrefix, errorSplitParts)
+	if len(parts) < errorSplitParts {
 		return ""
 	}
-	fieldPart := parts[1]
-	fieldName := strings.Split(fieldPart, ":")[0]
-	return strings.TrimSpace(fieldName)
+
+	fieldParts := strings.SplitN(parts[1], errorFieldDivider, errorFieldParts)
+	if len(fieldParts) < errorFieldParts {
+		return strings.TrimSpace(parts[1])
+	}
+
+	return strings.TrimSpace(fieldParts[0])
 }

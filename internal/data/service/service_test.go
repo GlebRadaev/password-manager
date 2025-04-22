@@ -138,7 +138,7 @@ func TestUpdateData(t *testing.T) {
 				repoMock.EXPECT().UpdateData(ctx, testEntry).
 					Return(errors.New("db error"))
 			},
-			wantErr: errors.New("db error"),
+			wantErr: errors.New("service: update data: db error"),
 		},
 	}
 
@@ -203,7 +203,7 @@ func TestDeleteData(t *testing.T) {
 				repoMock.EXPECT().DeleteList(ctx, userID, []string{dataID}).
 					Return(errors.New("db error"))
 			},
-			wantErr: errors.New("db error"),
+			wantErr: errors.New("service: delete data: db error"),
 		},
 	}
 
@@ -265,7 +265,7 @@ func TestListData(t *testing.T) {
 					Return(nil, errors.New("db error"))
 			},
 			want:    nil,
-			wantErr: errors.New("db error"),
+			wantErr: errors.New("service: list data: db error"),
 		},
 	}
 

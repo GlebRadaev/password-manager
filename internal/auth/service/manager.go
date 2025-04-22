@@ -15,6 +15,12 @@ import (
 	"github.com/GlebRadaev/password-manager/internal/auth/config"
 )
 
+const (
+	bcryptDefaultCost      = 10
+	otpLength              = 6
+	refreshTokenMultiplier = 2
+)
+
 // Manager handles security operations for authentication.
 type Manager struct {
 	secretKey       string
@@ -33,7 +39,7 @@ func NewManager(cfg config.LocalConfig) *Manager {
 
 // Hash generates bcrypt hash of the password.
 func (m *Manager) Hash(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptDefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -91,9 +97,9 @@ func (m *Manager) ValidateToken(tokenString string) (string, error) {
 	return "", errors.New("invalid token")
 }
 
-// GenerateOTP creates random 6-character OTP code.
+// GenerateOTP creates random OTP code.
 func (m *Manager) GenerateOTP() (string, time.Time, error) {
-	bytes := make([]byte, 6)
+	bytes := make([]byte, otpLength)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to generate OTP: %w", err)
 	}
@@ -119,7 +125,7 @@ func (m *Manager) ValidateOTP(storedOTPCode string, storedExpiresAt time.Time, p
 
 // GenerateRefreshToken creates long-lived refresh token.
 func (m *Manager) GenerateRefreshToken(userID string) (string, time.Time, error) {
-	expiresAt := time.Now().Add(m.tokenExpiration * 2)
+	expiresAt := time.Now().Add(m.tokenExpiration * refreshTokenMultiplier)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
